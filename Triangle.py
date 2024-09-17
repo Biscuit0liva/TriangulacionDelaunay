@@ -12,7 +12,17 @@ class Triangle:
     def __init__(self,v1 ,v2, v3):
         self.vertices = [v1, v2, v3]        # lista de vertices
         self.vecinos = [None, None, None]   # lista de triangulos vecinos
-
+    
+    def __eq__(self, other: 'Triangle') -> bool:
+        if not isinstance(other, Triangle):
+            return False
+        return self.vertices == other.vertices or \
+               self.vertices == [other.vertices[1], other.vertices[2], other.vertices[0]] or \
+               self.vertices == [other.vertices[2], other.vertices[0], other.vertices[1]]
+    
+    def __repr__(self):
+        return f"Triangulo[{self.vertices[0]}, {self.vertices[1]}, {self.vertices[2]}]"
+    
     # getter de la arista opuesta al punto i
     # recibe el indice i del punto y retorna la tupla ordenada de puntos que la componen 
     def get_arista_opuesta(self, index: int) -> tuple[point,point]:
@@ -28,3 +38,9 @@ class Triangle:
     # recibe el indice i del vertice opuesto
     def get_vecino_opuesto(self, index: int) -> 'Triangle':
         return self.vecinos[index]
+    
+    # Metodo para remplazar el vecino por otro
+    # recibe el triangulo t_old que sera remplzado como vecino por t_new
+    def replace(self, t_old:'Triangle', t_new:'Triangle')->None:
+        i_old = self.vecinos.index(t_old)       # posicion en la lista que remplzar
+        self.vecinos[i_old] = t_new             # cambio el objeto en la posicion
