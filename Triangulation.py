@@ -68,5 +68,87 @@ class Triangulation:
 
             if inside:
                 return current_triangle  # Se encontró el triángulo que contiene el punto
+            
+    # metodo para insertar un punto en un triangulo
+    # Esto generara 3 triangulos nuevos, el metodo maneja la actualizacion de vecinos
+    # recibe el indice del triangulo en la triangulacion y el punto que se inserta
+    def insert3(self, t:Triangle, p:point):
+        v0, v1, v2 = t.vertices
+        t.vertices = [v0,v1,p]
+        t2 = Triangle(v1,v2,p)
+        t3 = Triangle(v2,v0,p)
+        # vecinos anteriores de t
+        # actualizar los vecinos de t (si existen) antes setear sus nuevos vecinos t2 y t3
+        vecino0 = t.get_vecino_opuesto(0)
+        vecino1 = t.get_vecino_opuesto(1)
+        vecino2 = t.get_vecino_opuesto(2)
+        # actualizar referencia de vecinos
+        t.set_vecino(0,t2)
+        t.set_vecino(1,t3)
+        t.set_vecino(2,vecino2)
+        t2.set_vecino(0,t3)
+        t2.set_vecino(1,t)
+        t2.set_vecino(2,vecino0)
+        t3.set_vecino(0,t)
+        t3.set_vecino(1,t2)
+        t3.set_vecino(2,vecino1)
+        # actualizar los vecinos de t (si existen)
+        if vecino0 is not None:
+            vecino0.replace(t,t2)
+        if vecino1 is not None:
+            vecino1.replace(t,t3)
+        #if vecino2 is not None:
+        #    vecino2.replace(t,t1)
+        # agregar t2 y t3 a la lista
+        self.triangles.append(t2)
+        self.triangles.append(t3)
 
+    # metodo para insertar un punto en un triangulo
+    # esto genera 4 triangulos nuevos
+    # se utilza para el caso que un punto se inserte en una arista
+    # Recibe los dos triangulos que comparten la arista y el punto a insertar
+    def insert4(self, ta: Triangle, tb: Triangle, p:point):
+        # busco el indice correspondiente a cada vecino
+        i_a = ta.vecinos.index(tb)                       # punto de ta al que es opuesto tb
+        i_b = tb.vecinos.index(ta)                       # punto de tb  al que es opuesto ta
+        # vertices
+        vi = ta.vertices[i_a]                   # vertice opuesto a tb
+        vj, vk = ta.get_arista_opuesta(i_a)     # ta = vi, vj, vk tb = vl, vk, vj (no necesariamente en ese orden)
+        vl = tb.vertices[i_b]                   # vertice opuesto a ta
+        # extraigo los vecinos de los triangulo ta y tb
+        taj = ta.get_vecino_opuesto((i_a+1)%3)
+        tak = ta.get_vecino_opuesto((i_a+2)%3)
+        tbk = tb.get_vecino_opuesto((i_b+1)%3)
+        tbj = tb.get_vecino_opuesto((i_b+2)%3)
+        # modifico ta y tb, se crea t2 y t4 los otros dos que se generan
+        # los triangulos quedarian en orden anti horario: ta, t2, tb, t4
+        ta.vertices = [vi, vj, p]
+        t4 = Triangle(vk, vi, p)
+        tb.vertices = [vl, vk, p]
+        t2 = Triangle(vj, vl,p)
+        # seteamos los vecinos
+        ta.set_vecino(0,t2)
+        ta.set_vecino(1,t4)
+        ta.set_vecino(2,tak)
+        t2.set_vecino(0,tb)
+        t2.set_vecino(1,ta)
+        t2.set_vecino(2,tbk)
+        tb.set_vecino(0,t4)
+        tb.set_vecino(1,t2)
+        tb.set_vecino(2,tbj)
+        t4.set_vecino(0,ta)
+        t4.set_vecino(1,tb)
+        t4.set_vecino(2,taj)
+        # actualizar los vecinosa anteriores de ta y tb (si existen)
+        #if tak is not None:
+         #   tak.replace(ta,ta)
+        if tbk is not None:
+            tbk.replace(tb,t2)
+        #if tbj is not None:
+         #   tbj.replace(tb,tb)
+        if taj is not None:
+            taj.replace(ta,t4)
+        # agregar t2 y t4 a la lista
+        self.triangles.append(t2)
+        self.triangles.append(t4)
         
