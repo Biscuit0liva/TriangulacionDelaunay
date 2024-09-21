@@ -58,21 +58,33 @@ class TestTriangle(unittest.TestCase):
         # realizamos el flip
         self.T.flip(self.t1, self.t2)
         # comprobamos que se realizo bien
-        t1_new = self.t4.get_vecino_opuesto(0)
-        t2_new = self.t6.get_vecino_opuesto(0)
+        t1_new = self.t6.get_vecino_opuesto(0)
+        t2_new = self.t4.get_vecino_opuesto(0)
         # puntos bien asignados
-        self.assertEqual(t1_new, Triangle(self.a, self.d, self.c))
-        self.assertEqual(t2_new, Triangle(self.b, self.d, self.a))
+        self.assertEqual(t1_new, Triangle(self.b, self.d, self.a))
+        self.assertEqual(t2_new, Triangle(self.a, self.d, self.c))
+        self.assertEqual(self.T.triangles[0], Triangle(self.b, self.d, self.a))
+        self.assertEqual(self.T.triangles[5], Triangle(self.a, self.d, self.c))
         # que tenga sus vecinos bien asignados
-        self.assertIn(t2_new,t1_new.vecinos)
-        self.assertIn(self.t4,t1_new.vecinos)
-        self.assertIn(self.t3,t1_new.vecinos)
-        self.assertIn(t1_new,t2_new.vecinos)
-        self.assertIn(self.t5,t2_new.vecinos)
-        self.assertIn(self.t6,t2_new.vecinos)
+        self.assertEqual(self.T.triangles[0],self.T.triangles[5].get_vecino_opuesto(1))
+        self.assertEqual(self.T.triangles[3],self.T.triangles[5].get_vecino_opuesto(0))
+        self.assertEqual(self.T.triangles[4],self.T.triangles[5].get_vecino_opuesto(2))
+        self.assertEqual(self.T.triangles[5],self.T.triangles[0].get_vecino_opuesto(1))
+        self.assertEqual(self.T.triangles[2],self.T.triangles[0].get_vecino_opuesto(2))
+        self.assertEqual(self.T.triangles[1],self.T.triangles[0].get_vecino_opuesto(0))
         # revisamos que los triangulos quedaron con los vecinos bien
-        self.assertEqual(t2_new, self.t5.get_vecino_opuesto(2))
-        self.assertEqual(t1_new, self.t3.get_vecino_opuesto(1))
+        self.assertEqual(self.T.triangles[0], self.T.triangles[2].get_vecino_opuesto(2))
+        self.assertEqual(None, self.T.triangles[2].get_vecino_opuesto(0))
+        self.assertEqual(None, self.T.triangles[2].get_vecino_opuesto(1))
+        self.assertEqual(self.T.triangles[0], self.T.triangles[1].get_vecino_opuesto(0))
+        self.assertEqual(None, self.T.triangles[1].get_vecino_opuesto(1))
+        self.assertEqual(None, self.T.triangles[1].get_vecino_opuesto(2))
+        self.assertEqual(self.T.triangles[5], self.T.triangles[4].get_vecino_opuesto(1))
+        self.assertEqual(None, self.T.triangles[4].get_vecino_opuesto(0))
+        self.assertEqual(None, self.T.triangles[4].get_vecino_opuesto(2))
+        self.assertEqual(self.T.triangles[5], self.T.triangles[3].get_vecino_opuesto(0))
+        self.assertEqual(None, self.T.triangles[3].get_vecino_opuesto(1))
+        self.assertEqual(None, self.T.triangles[3].get_vecino_opuesto(2))
     
     def test_find_containing_triangle(self):
         # buscamos un punto en t1
@@ -183,5 +195,30 @@ class TestTriangle(unittest.TestCase):
         self.assertEqual(self.T.triangles[3].get_vecino_opuesto(0), self.T.triangles[7])    # t4
         self.assertEqual(self.T.triangles[3].get_vecino_opuesto(1), None)
         self.assertEqual(self.T.triangles[3].get_vecino_opuesto(2), None)
+
+    def test_legalize_edge(self):
+        # realizamos una insercion en t1
+        p1 = point(0.3,-0.1)
+        self.T.insert3(self.T.triangles[0], p1)
+        # legalizamos el triangulo colindante con t2
+        self.T.legalize_edge(self.T.triangles[6], self.T.triangles[5])
+        # deberia hacer flip y a los nuevos triangulos opuestos a p1 no hacer flip
+        self.assertEqual(self.T.triangles[6], Triangle(point(1,-1), point(2,0), point(0.3, -0.1)))
+        self.assertEqual(self.T.triangles[5], Triangle(point(2,0),point(1,1), point(0.3, -0.1)))
+        # revisamos que el resto de los triangulos esten bien
+        self.assertEqual(self.T.triangles[1], Triangle(point(1,-1), point(3,-2), point(2, 0)))
+        self.assertEqual(self.T.triangles[1].get_vecino_opuesto(0), self.T.triangles[6])    # t6
+        self.assertEqual(self.T.triangles[1].get_vecino_opuesto(1), None)
+        self.assertEqual(self.T.triangles[1].get_vecino_opuesto(2), None)
+        self.assertEqual(self.T.triangles[4].get_vecino_opuesto(0), None)    # t3
+        self.assertEqual(self.T.triangles[4].get_vecino_opuesto(1), self.T.triangles[5])
+        self.assertEqual(self.T.triangles[4].get_vecino_opuesto(2), None)
+        self.assertEqual(self.T.triangles[5].get_vecino_opuesto(0), self.T.triangles[7])    # t2
+        self.assertEqual(self.T.triangles[5].get_vecino_opuesto(1), self.T.triangles[6])
+        self.assertEqual(self.T.triangles[5].get_vecino_opuesto(2), self.T.triangles[4])
+        self.assertEqual(self.T.triangles[6].get_vecino_opuesto(0), self.T.triangles[1])    # t11
+        self.assertEqual(self.T.triangles[6].get_vecino_opuesto(1), self.T.triangles[5])    
+        self.assertEqual(self.T.triangles[6].get_vecino_opuesto(2), self.T.triangles[0])
+        
 if __name__ == '__main__':
     unittest.main()

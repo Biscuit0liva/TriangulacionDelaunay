@@ -12,8 +12,8 @@ class Triangulation:
     
     
     # Realiza un flip en la arista compartida entre los triángulos t1 y t2.
+    # realiza los cambios sobre la misma referencia de los triangulos, evitando
     # Recibe los triangulos t1 y t2 que son adyacentes
-    
     def flip(self, t1:Triangle, t2:Triangle):
         # busco el indice correspondiente a cada vecino
         i_1 = t1.vecinos.index(t2)                       # punto de t1 al que es opuesto t2
@@ -23,26 +23,30 @@ class Triangulation:
         vi = t1.vertices[i_1]
         vj,vk = arista_compartida
         vl = t2.vertices[i_2]
-        # creo los nuevos triangulos
-        t1_new = Triangle(vi, vj, vl)
-        t2_new = Triangle(vl, vk, vi)
-        # asigno los vecinos a estos nuevos triangulos
-        t1_new.set_vecino(0, t2.get_vecino_opuesto((i_2+1)%3))
-        t1_new.set_vecino(1, t2_new)
-        t1_new.set_vecino(2, t1.get_vecino_opuesto((i_1+2)%3))
-        t2_new.set_vecino(0, t1.get_vecino_opuesto((i_1+1)%3))
-        t2_new.set_vecino(1, t1_new)
-        t2_new.set_vecino(2, t2.get_vecino_opuesto((i_2+2)%3))
-        # remplazo en los vecinos los triangulos anteriores por los nuevos
+        # extraigo los vecinos de los triangulo ta y tb
         t1j = t1.get_vecino_opuesto((i_1+1)%3)
         t1k = t1.get_vecino_opuesto((i_1+2)%3)
         t2k = t2.get_vecino_opuesto((i_2+1)%3)
         t2j = t2.get_vecino_opuesto((i_2+2)%3)
-        t1j.replace(t1, t2_new)
-        t1k.replace(t1, t1_new)
-        t2k.replace(t2, t1_new)
-        t2j.replace(t2, t2_new)
-        # elimino los triangulos anteriores de la triangulacion
+        # modifico t1 y t2
+        t1.vertices = [vi, vj, vl]
+        t2.vertices = [vl, vk, vi]
+        # reasigno los vecinos a estos nuevos triangulos
+        t1.set_vecino(0, t2k)
+        t1.set_vecino(1, t2)
+        t1.set_vecino(2, t1k)
+        t2.set_vecino(0, t1j)
+        t2.set_vecino(1, t1)
+        t2.set_vecino(2, t2j)
+        # actualizar los vecinos anteriores de t1 y t2 (si existen)
+        if t1j is not None:
+            t1j.replace(t1, t2)
+        if t1k is not None:
+            t1k.replace(t1, t1)
+        if t2k is not None:
+            t2k.replace(t2, t1)
+        if t2j is not None:
+            t2j.replace(t2, t2)
 
     # Busca el triangulo que contenga el punto recibido, recorriendo los triangulos
     # Recorre usando orient2D en las aristas con el punto y avanza cuando el punto este a la derecha
@@ -151,4 +155,24 @@ class Triangulation:
         # agregar t2 y t4 a la lista
         self.triangles.append(t2)
         self.triangles.append(t4)
+
+    def legalize_edge(self, t1: Triangle, t2:Triangle):
+        # vertice opuesto a la arista compartida en t2
+        p = t1.vertices[(t1.vecinos.index(t2))]
+        # verificar la condicion de delaunay en t1
+        if incircle(p, t2.vertices[0], t2.vertices[1], t2.vertices[2], self.epsilon)>=0:  # tomamos en el circulo como adentro
+            # ilegal
+            self.flip(t1, t2)
+            # busco los indices de p en t1 y t2 despues del flip
+            i_1 =t1.vertices.index(p)
+            i_2 =t2.vertices.index(p)
+            # legalizacion recursiva
+            vecino_1 = t1.get_vecino_opuesto(i_1)
+            vecino_2 = t2.get_vecino_opuesto(i_2)
+            if vecino_1 is not None:
+                self.legalize_edge(t1, vecino_1)  # Para la nueva arista E1
+            if vecino_2 is not None:
+                self.legalize_edge(t2, vecino_2)  # Para la nueva arista E2
+
+    
         
