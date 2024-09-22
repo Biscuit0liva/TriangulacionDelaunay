@@ -9,7 +9,7 @@ from point import point
 
 
 class Triangle:
-    def __init__(self,v1 ,v2, v3):
+    def __init__(self,v1:int ,v2:int, v3:int):
         self.vertices = [v1, v2, v3]        # lista de vertices
         self.vecinos = [None, None, None]   # lista de triangulos vecinos
     
@@ -25,7 +25,7 @@ class Triangle:
     
     # getter de la arista opuesta al punto i
     # recibe el indice i del punto y retorna la tupla ordenada de puntos que la componen 
-    def get_arista_opuesta(self, index: int) -> tuple[point,point]:
+    def get_arista_opuesta(self, index: int) -> tuple[int,int]:
         return (self.vertices[(index+1)%3], self.vertices[(index+2)%3])
     
     # Asigna al triangulo un vecino

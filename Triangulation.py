@@ -2,10 +2,13 @@ from point import point
 from Triangle import Triangle
 from utils import incircle, orient2d
 # implementacion de la clase que representa la triangulacion
-# Se compone de una lista con sus triangulos y otra con los puntos de su geometria contenedora
+# Se compone de una lista con sus los puntos, una con sus triangulos 
+# , su geometria contenedora y la tolerancia epsilon que usa en los predicados
 
 class Triangulation:
     def __init__(self, epsilon):
+        self.points = []        # lista de puntos
+        self.cnt = 0            # contador de puntos
         self.triangles = []     # lista de triangulos
         self.container = None   # geometria contenedora
         self.epsilon = epsilon  # tolerancia de la triangulacion
@@ -64,7 +67,7 @@ class Triangulation:
                 v1, v2 = current_triangle.get_arista_opuesta(i)
                 
                 # Si orient2D devuelve negativo, el punto está fuera del lado de la arista
-                if orient2d(point, v1, v2, self.epsilon) < 0:
+                if orient2d(point, self.points[v1], self.points[v2], self.epsilon) < 0:
                     inside = False
                     # Moverse al triángulo que comparte la arista
                     current_triangle = current_triangle.vecinos[i]
@@ -77,10 +80,13 @@ class Triangulation:
     # Esto generara 3 triangulos nuevos, el metodo maneja la actualizacion de vecinos
     # recibe el indice del triangulo en la triangulacion y el punto que se inserta
     def insert3(self, t:Triangle, p:point):
+        self.points.append(p)
+        self.cnt += 1               # incrementar el contador de puntos
+        x = self.cnt - 1            # indice del punto insertado
         v0, v1, v2 = t.vertices
-        t.vertices = [v0,v1,p]
-        t2 = Triangle(v1,v2,p)
-        t3 = Triangle(v2,v0,p)
+        t.vertices = [v0,v1,x]
+        t2 = Triangle(v1,v2,x)
+        t3 = Triangle(v2,v0,x)
         # vecinos anteriores de t
         # actualizar los vecinos de t (si existen) antes setear sus nuevos vecinos t2 y t3
         vecino0 = t.get_vecino_opuesto(0)
@@ -112,6 +118,9 @@ class Triangulation:
     # se utilza para el caso que un punto se inserte en una arista
     # Recibe los dos triangulos que comparten la arista y el punto a insertar
     def insert4(self, ta: Triangle, tb: Triangle, p:point):
+        self.points.append(p)
+        self.cnt += 1               # incrementar el contador de puntos
+        x = self.cnt - 1            # indice del punto insertado
         # busco el indice correspondiente a cada vecino
         i_a = ta.vecinos.index(tb)                       # punto de ta al que es opuesto tb
         i_b = tb.vecinos.index(ta)                       # punto de tb  al que es opuesto ta
@@ -126,10 +135,10 @@ class Triangulation:
         tbj = tb.get_vecino_opuesto((i_b+2)%3)
         # modifico ta y tb, se crea t2 y t4 los otros dos que se generan
         # los triangulos quedarian en orden anti horario: ta, t2, tb, t4
-        ta.vertices = [vi, vj, p]
-        t4 = Triangle(vk, vi, p)
-        tb.vertices = [vl, vk, p]
-        t2 = Triangle(vj, vl,p)
+        ta.vertices = [vi, vj, x]
+        t4 = Triangle(vk, vi, x)
+        tb.vertices = [vl, vk, x]
+        t2 = Triangle(vj, vl,x)
         # seteamos los vecinos
         ta.set_vecino(0,t2)
         ta.set_vecino(1,t4)
@@ -156,11 +165,15 @@ class Triangulation:
         self.triangles.append(t2)
         self.triangles.append(t4)
 
+    # Metodo para legalizar una arista
+    # Recibe los dos triangulos que comparten la arista
+    # Si la arista no cumple la condicion de delaunay, se realiza un flip
+    # y se llama recursivamente para legalizar las nuevas aristas
     def legalize_edge(self, t1: Triangle, t2:Triangle):
         # vertice opuesto a la arista compartida en t2
         p = t1.vertices[(t1.vecinos.index(t2))]
         # verificar la condicion de delaunay en t1
-        if incircle(p, t2.vertices[0], t2.vertices[1], t2.vertices[2], self.epsilon)>=0:  # tomamos en el circulo como adentro
+        if incircle(self.points[p], self.points[t2.vertices[0]], self.points[t2.vertices[1]], self.points[t2.vertices[2]], self.epsilon)>=0:  # tomamos en el circulo como adentro
             # ilegal
             self.flip(t1, t2)
             # busco los indices de p en t1 y t2 despues del flip

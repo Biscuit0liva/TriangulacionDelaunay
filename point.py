@@ -1,7 +1,7 @@
 # Clase de puntos, representan los vertices
 # Se construyen con sus coordenadas en x e y
 class point:
-    def __init__(self,x,y):
+    def __init__(self,x:float,y:float):
         self.x = x
         self.y = y
     

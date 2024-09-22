@@ -13,22 +13,25 @@ class TestTriangle(unittest.TestCase):
     def setUp(self):
         self.T = Triangulation(1e-10)
         # puntos
-        self.a = point(0, 0)
-        self.b = point(1, -1)
-        self.c = point(1, 1)
-        self.d = point(2, 0)
-        self.e = point(2, 1)
-        self.f = point(-1, 1)
-        self.g = point(0, -2)
-        self.h = point(3, -2)
+        self.a = point(0, 0)    # 0
+        self.b = point(1, -1)   # 1  
+        self.c = point(1, 1)    # 2
+        self.d = point(2, 0)    # 3
+        self.e = point(2, 1)    # 4
+        self.f = point(-1, 1)   # 5
+        self.g = point(0, -2)   # 6
+        self.h = point(3, -2)   # 7
+
+        self.T.points = [self.a, self.b, self.c, self.d, self.e, self.f, self.g, self.h]
+        self.T.cnt = 8
 
         # triangulos de prueba
-        self.t1 = Triangle(self.a, self.b, self.c)
-        self.t2 = Triangle(self.c, self.b, self.d)
-        self.t3 = Triangle(self.d, self.e, self.c)
-        self.t4 = Triangle(self.f, self.a, self.c)
-        self.t5 = Triangle(self.b, self.a, self.g)
-        self.t6 = Triangle(self.h, self.d, self.b)
+        self.t1 = Triangle(0, 1, 2)
+        self.t2 = Triangle(2, 1, 3)
+        self.t3 = Triangle(3, 4, 2)
+        self.t4 = Triangle(5, 0, 2)
+        self.t5 = Triangle(1, 0, 6)
+        self.t6 = Triangle(7, 3, 1)
 
         # seteamos sus vecinos
         self.t1.set_vecino(0, self.t2)
@@ -61,10 +64,10 @@ class TestTriangle(unittest.TestCase):
         t1_new = self.t6.get_vecino_opuesto(0)
         t2_new = self.t4.get_vecino_opuesto(0)
         # puntos bien asignados
-        self.assertEqual(t1_new, Triangle(self.b, self.d, self.a))
-        self.assertEqual(t2_new, Triangle(self.a, self.d, self.c))
-        self.assertEqual(self.T.triangles[0], Triangle(self.b, self.d, self.a))
-        self.assertEqual(self.T.triangles[5], Triangle(self.a, self.d, self.c))
+        self.assertEqual(t1_new, Triangle(1, 3, 0))
+        self.assertEqual(t2_new, Triangle(0, 3, 2))
+        self.assertEqual(self.T.triangles[0], Triangle(1, 3, 0))
+        self.assertEqual(self.T.triangles[5], Triangle(0, 3, 2))
         # que tenga sus vecinos bien asignados
         self.assertEqual(self.T.triangles[0],self.T.triangles[5].get_vecino_opuesto(1))
         self.assertEqual(self.T.triangles[3],self.T.triangles[5].get_vecino_opuesto(0))
@@ -111,12 +114,15 @@ class TestTriangle(unittest.TestCase):
         # insertamos un punto en t1
         p1 = point(0.3,-0.1)
         self.T.insert3(self.T.triangles[0], p1)
+        # vemos si se agrego el punto a la lista de puntos
+        self.assertEqual(self.T.points[8], p1)
+        self.assertEqual(self.T.cnt, 9)
         # comprobamos que modifico el objeto y no solo el de la lista
         self.assertEqual(self.t1, self.T.triangles[0])
         # comprobamos que se generaron bien los triangulos
-        self.assertEqual(self.T.triangles[0], Triangle(point(0,0), point(1,-1), point(0.3,-0.1)))
-        self.assertEqual(self.T.triangles[6], Triangle(point(1,-1), point(1,1), point(0.3, -0.1)))
-        self.assertEqual(self.T.triangles[7], Triangle(point(1,1), point(0,0), point(0.3, -0.1)))
+        self.assertEqual(self.T.triangles[0], Triangle(0, 1, 8))
+        self.assertEqual(self.T.triangles[6], Triangle(1, 2, 8))
+        self.assertEqual(self.T.triangles[7], Triangle(2, 0, 8))
         # revisamos que tengan bien asignados sus vecinos
         self.assertEqual(self.T.triangles[0].get_vecino_opuesto(0), self.T.triangles[6])
         self.assertEqual(self.T.triangles[0].get_vecino_opuesto(1), self.T.triangles[7])
@@ -143,6 +149,13 @@ class TestTriangle(unittest.TestCase):
         p6 = point(2.41022,-1.47037)
         self.assertEqual(self.T.triangles[1], self.t6)
         self.T.insert3(self.T.triangles[1], p6)
+        # vemos si se agrego el punto a la lista de puntos
+        self.assertEqual(self.T.points[9], p6)
+        self.assertEqual(self.T.cnt, 10)
+        # comprobamos que se generaron bien los triangulos
+        self.assertEqual(self.T.triangles[1], Triangle(7, 3, 9))
+        self.assertEqual(self.T.triangles[8], Triangle(3, 1, 9))
+        self.assertEqual(self.T.triangles[9], Triangle(1, 7, 9))
         self.assertEqual(self.T.triangles[1].get_vecino_opuesto(0), self.T.triangles[8])
         self.assertEqual(self.T.triangles[1].get_vecino_opuesto(1), self.T.triangles[9])
         self.assertEqual(self.T.triangles[1].get_vecino_opuesto(2), None)
@@ -158,14 +171,17 @@ class TestTriangle(unittest.TestCase):
         # insertamos un punto en la arista que comparte t1 y t2.
         # Los triangulos quedan ta, t2, tb, t4 en las posiciones, 0, 6, 5, 7, respectivamente
         self.T.insert4(self.T.triangles[0], self.T.triangles[5], p)
+        # vemos si se agrego el punto a la lista de puntos
+        self.assertEqual(self.T.points[8], p)
+        self.assertEqual(self.T.cnt, 9)
         # comprobamos que modifico el objeto y no solo la lista  
         self.assertEqual(self.t1, self.T.triangles[0])
         self.assertEqual(self.t2, self.T.triangles[5])
         # comprobamos que se generaron bien los triangulos
-        self.assertEqual(self.T.triangles[0], Triangle(point(0,0), point(1,-1), point(1,0)))
-        self.assertEqual(self.T.triangles[6], Triangle(point(1,-1), point(2,0), point(1,0)))
-        self.assertEqual(self.T.triangles[5], Triangle(point(2,0), point(1,1), point(1,0)))
-        self.assertEqual(self.T.triangles[7], Triangle(point(1,1), point(0,0), point(1,0)))
+        self.assertEqual(self.T.triangles[0], Triangle(0, 1, 8))
+        self.assertEqual(self.T.triangles[6], Triangle(1, 3, 8))
+        self.assertEqual(self.T.triangles[5], Triangle(3, 2, 8))
+        self.assertEqual(self.T.triangles[7], Triangle(2, 0, 8))
         # revisamos que tengan bien asignados sus vecinos ta
         self.assertEqual(self.T.triangles[0].get_vecino_opuesto(0), self.T.triangles[6])
         self.assertEqual(self.T.triangles[0].get_vecino_opuesto(1), self.T.triangles[7])
@@ -203,10 +219,10 @@ class TestTriangle(unittest.TestCase):
         # legalizamos el triangulo colindante con t2
         self.T.legalize_edge(self.T.triangles[6], self.T.triangles[5])
         # deberia hacer flip y a los nuevos triangulos opuestos a p1 no hacer flip
-        self.assertEqual(self.T.triangles[6], Triangle(point(1,-1), point(2,0), point(0.3, -0.1)))
-        self.assertEqual(self.T.triangles[5], Triangle(point(2,0),point(1,1), point(0.3, -0.1)))
+        self.assertEqual(self.T.triangles[6], Triangle(1, 3, 8))
+        self.assertEqual(self.T.triangles[5], Triangle(3,2, 8))
         # revisamos que el resto de los triangulos esten bien
-        self.assertEqual(self.T.triangles[1], Triangle(point(1,-1), point(3,-2), point(2, 0)))
+        self.assertEqual(self.T.triangles[1], Triangle(1, 7, 3))
         self.assertEqual(self.T.triangles[1].get_vecino_opuesto(0), self.T.triangles[6])    # t6
         self.assertEqual(self.T.triangles[1].get_vecino_opuesto(1), None)
         self.assertEqual(self.T.triangles[1].get_vecino_opuesto(2), None)
