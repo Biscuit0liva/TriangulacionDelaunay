@@ -109,6 +109,15 @@ class TestTriangle(unittest.TestCase):
         # buscamos un punto en t6
         p6 = point(2.41022,-1.47037)
         self.assertEqual(self.T.find_containing_triangle(p6), self.t6)
+        # buscamos un punto en la arista compartida de t1 y t2
+        p7 = point(1,-0.65)
+        self.assertEqual(self.T.find_containing_triangle(p7), self.t1)
+        # buscamos un punto en la arista compartida de t4
+        p8 = point(-0.21,0.21)
+        self.assertEqual(self.T.find_containing_triangle(p8), self.t4)
+        # buscamos un punto en la arista de t6
+        p9 = point(2.55,-1.11)
+        self.assertEqual(self.T.find_containing_triangle(p9), self.t6)
     
     def test_insert3(self):
         # insertamos un punto en t1
@@ -217,7 +226,9 @@ class TestTriangle(unittest.TestCase):
         p1 = point(0.3,-0.1)
         self.T.insert3(self.T.triangles[0], p1)
         # legalizamos el triangulo colindante con t2
-        self.T.legalize_edge(self.T.triangles[6], self.T.triangles[5])
+        indice = self.T.triangles[6].vertices.index(self.T.cnt-1)   # indice del punto insertado en los vertices del trianglo numero 6 de la triangulacion
+        
+        self.T.legalize_edge(self.T.triangles[6], self.T.triangles[6].get_vecino_opuesto(self.T.triangles[6].vertices.index(self.T.cnt-1)))
         # deberia hacer flip y a los nuevos triangulos opuestos a p1 no hacer flip
         self.assertEqual(self.T.triangles[6], Triangle(1, 3, 8))
         self.assertEqual(self.T.triangles[5], Triangle(3,2, 8))
@@ -235,6 +246,27 @@ class TestTriangle(unittest.TestCase):
         self.assertEqual(self.T.triangles[6].get_vecino_opuesto(0), self.T.triangles[1])    # t11
         self.assertEqual(self.T.triangles[6].get_vecino_opuesto(1), self.T.triangles[5])    
         self.assertEqual(self.T.triangles[6].get_vecino_opuesto(2), self.T.triangles[0])
-        
+        # legalizamos el triangulo colindante con t5
+        self.T.legalize_edge(self.T.triangles[0], self.T.triangles[0].get_vecino_opuesto(self.T.triangles[0].vertices.index(self.T.cnt-1)))
+        # deberia hacer flip
+        self.assertEqual(self.T.triangles[0], Triangle(0, 6, 8))
+    
+    def test_point_on_edge(self):
+        self.assertEqual( self.T.point_on_edge(point(1,0), self.T.triangles[0]),(True,0))
+        _,i = self.T.point_on_edge(point(1,0), self.T.triangles[0])
+        self.assertEqual(self.T.triangles[0].get_vecino_opuesto(i),self.T.triangles[5])
+        self.assertEqual( self.T.point_on_edge(point(1,0), self.T.triangles[5]),(True,2))
+        _,i = self.T.point_on_edge(point(1,0), self.T.triangles[5])
+        self.assertEqual(self.T.triangles[5].get_vecino_opuesto(i),self.T.triangles[0])
+        self.assertEqual( self.T.point_on_edge(point(1,3), self.T.triangles[1]),(False,None))
+
+    def test_triangulate(self):
+        # creo un objeto nuevo
+        T2 = Triangulation(1e-10)
+        # puntos
+        ps = [self.a, self.b, self.c, self.d, self.e, self.f, self.g, self.h]
+        T2.triangulate(ps)
+        print(T2.triangles)
+        print(T2.points)
 if __name__ == '__main__':
     unittest.main()

@@ -3,7 +3,7 @@ from OpenGL import GL
 import numpy as np
 import os
 from pathlib import Path
-
+import random
 from sys import argv
 import sys
 # Agregar el directorio raíz del proyecto a sys.path
@@ -40,9 +40,26 @@ controller = Controller()
 path_to_this_file = Path(os.path.dirname(__file__))
 
 try:
-    m2d_file = argv[1]
+    mode = argv[1]
+    if mode == "u":         # grilla uniforme
+        rows = int(argv[2])
+        cols = int(argv[3])
+    elif mode == "ur":      # grilla uniforme eligiendo puntos aleatorios
+        rows = int(argv[2])
+        cols = int(argv[3])
+        n = int(argv[4])
+    elif mode == "r":       # puntos aleatorios, en un rango de (-a,a) x (-b,b)
+        a = int(argv[2])
+        b = int(argv[3])    
+        n = int(argv[4])
+    elif mode == "c":       # puntos aleatorios, en un rango circular
+        radio = int(argv[2])
+        n = int(argv[3])
+    else:
+        print("Modo no valido")
+        exit()
 except:
-    print("file not specified")
+    print("faltan argumentos")
     exit()
 
 if __name__ == "__main__":
@@ -52,50 +69,43 @@ if __name__ == "__main__":
         width, height, "Visualizador de archivos m2d", resizable=False
     )
     T = Triangulation(1e-10)
-    # puntos
-    a = point(0, 0)    # 0
-    b = point(1, -1)   # 1  
-    c = point(1, 1)    # 2
-    d = point(2, 0)    # 3
-    e = point(2, 1)    # 4
-    f = point(-1, 1)   # 5
-    g = point(0, -2)   # 6
-    h = point(3, -2)   # 7
-    T.points = [a, b, c, d, e, f, g, h]
-    T.cnt = 8
+    puntos = []
+    # grilla de puntos
+    if mode == "u":
+        for i in range(rows):
+            for j in range (cols):
+                puntos.append(point(i,j))
+    # grilla de puntos con puntos aleatorios
+    elif mode == "ur":
+        for i in range(rows):
+            for j in range (cols):
+                puntos.append(point(i,j))
+        if n > len(puntos):
+            print("n mayor a la cantidad de puntos")
+            exit()
+        puntos = random.sample(puntos, n)
+    # puntos aleatorios en un rango rectangular
+    elif mode == "r":
+        for _ in range(n):
+            x = random.uniform(-a,a)
+            y = random.uniform(-b,b)
+            puntos.append(point(x,y))
+    # puntos aleatorios en un rango circular
+    elif mode == "c":
+        for _ in range(n):
+            r = radio*np.sqrt(random.uniform(0,1))
+            theta = random.uniform(0,2*np.pi)
+            x = r*np.cos(theta)
+            y = r*np.sin(theta)
+            puntos.append(point(x,y))
+    else:
+        print("Modo no valido")
+        exit()
+    
+    
+    
 
-     # triangulos de prueba
-    t1 = Triangle(0, 1, 2)
-    t2 = Triangle(2, 1, 3)
-    t3 = Triangle(3, 4, 2)
-    t4 = Triangle(5, 0, 2)
-    t5 = Triangle(1, 0, 6)
-    t6 = Triangle(7, 3, 1)
-
-    # seteamos sus vecinos
-    t1.set_vecino(0, t2)
-    t1.set_vecino(1, t4)
-    t1.set_vecino(2, t5)
-    t2.set_vecino(0, t6)
-    t2.set_vecino(1, t3)
-    t2.set_vecino(2, t1)
-    t3.set_vecino(1, t2)
-    t4.set_vecino(0, t1)
-    t5.set_vecino(2, t1)
-    t6.set_vecino(0, t2)
-    # agregamos los triangulos a la triangulación
-    T.triangles.append(t1)
-    T.triangles.append(t6)
-    T.triangles.append(t5)
-    T.triangles.append(t4)
-    T.triangles.append(t3)
-    T.triangles.append(t2)
-    # insertamos un punto en t1
-    p1 = point(0.3,-0.1)
-    T.insert3(T.triangles[0], p1)
-    T.legalize_edge(T.triangles[6], T.triangles[5])
-    T.legalize_edge(T.triangles[0], T.triangles[2])
-    T.legalize_edge(T.triangles[7], T.triangles[3])
+    T.triangulate(puntos)
 
     vertices, indices, min_x, min_y, max_x, max_y = read_triangulation(T)
 

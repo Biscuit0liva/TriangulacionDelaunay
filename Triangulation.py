@@ -1,3 +1,4 @@
+import random
 from point import point
 from Triangle import Triangle
 from utils import incircle, orient2d
@@ -186,6 +187,75 @@ class Triangulation:
                 self.legalize_edge(t1, vecino_1)  # Para la nueva arista E1
             if vecino_2 is not None:
                 self.legalize_edge(t2, vecino_2)  # Para la nueva arista E2
+
+
+    # Metodo que verifica si un punto esta en una arista del triangulo
+    # retorna el booleano y el indice del vecino en su lista de vecinos que lo comparte
+    def point_on_edge(self, p:point, t:Triangle):
+        for i in range(3):
+            v1, v2 = t.get_arista_opuesta(i)
+            if orient2d(p, self.points[v1], self.points[v2], self.epsilon) == 0:
+                return True, i
+        return False, None
+
+    # Metodo que realiza la triangulacion
+    # Recibe una lista de puntos y realiza la triangulacion de Delaunay
+    # Se inicializa la triangulacion con un triangulo contenedor
+    # Se recorren los puntos y se insertan uno a uno
+    def triangulate(self, points):
+        # Crear un triángulo contenedor
+        p1 = point(-1e6, -1e6)
+        p2 = point(1e6, -1e6)
+        p3 = point(0, 1e6)
+        # agregarlos a la lista de puntos
+        self.points.append(p1)
+        self.points.append(p2)
+        self.points.append(p3)
+        self.cnt += 3   # incrementar el contador de puntos
+        # crear el triangulo contenedor
+        container = Triangle(0, 1, 2)
+        self.container = container
+        self.triangles.append(container)
+        # permutacion aleatoria de los puntos
+        points = random.sample(points, len(points))
+        # recorrer los puntos y agregarlos a la triangulacion
+        for p in points:
+            # encontrar el triangulo que contiene el punto
+            t = self.find_containing_triangle(p)
+            # revisa si el punto esta en la arista
+            on_edge, i_neighbour = self.point_on_edge(p,t)
+            if on_edge:
+                # insertar el punto en la arista
+                tn = t.get_vecino_opuesto(i_neighbour)
+                self.insert4(t, tn, p)
+                # legalizar las aristas, para ello primero saco los 2 nuevos triangulos en la lista
+                t2 = self.triangles[-2]
+                t4 = self.triangles[-1]
+                # legalizar las aristas (si existen)
+                if t.get_vecino_opuesto(t.vertices.index(self.cnt-1)) is not None:
+                    self.legalize_edge(t, t.get_vecino_opuesto(t.vertices.index(self.cnt-1)))   # esto es legalizar con el triangulo nuevo y su vecino opuesto al punto insertado
+                if t2.get_vecino_opuesto(t2.vertices.index(self.cnt-1)) is not None:
+                    self.legalize_edge(t2, t2.get_vecino_opuesto(t2.vertices.index(self.cnt-1)))
+                if tn.get_vecino_opuesto(tn.vertices.index(self.cnt-1)) is not None:
+                    self.legalize_edge(tn, tn.get_vecino_opuesto(tn.vertices.index(self.cnt-1)))
+                if t4.get_vecino_opuesto(t4.vertices.index(self.cnt-1)) is not None:
+                    self.legalize_edge(t4, t4.get_vecino_opuesto(t4.vertices.index(self.cnt-1)))
+            else:
+                # insertar el punto en el triangulo
+                self.insert3(t, p)
+                # legalizar las aristas, para ello primero saco los 2 nuevos triangulos en la lista
+                t2 = self.triangles[-2]
+                t3 = self.triangles[-1]
+                # legalizar las aristas (si existen)
+                if t.get_vecino_opuesto(t.vertices.index(self.cnt-1)) is not None:
+                    self.legalize_edge(t, t.get_vecino_opuesto(t.vertices.index(self.cnt-1)))
+                if t2.get_vecino_opuesto(t2.vertices.index(self.cnt-1)) is not None:
+                    self.legalize_edge(t2, t2.get_vecino_opuesto(t2.vertices.index(self.cnt-1)))
+                if t3.get_vecino_opuesto(t3.vertices.index(self.cnt-1)) is not None:
+                    self.legalize_edge(t3, t3.get_vecino_opuesto(t3.vertices.index(self.cnt-1)))
+        # remover el triangulo contenedor
+        self.triangles = [t for t in self.triangles if not any(v in [0,1,2] for v in t.vertices)]
+        
 
     
         
