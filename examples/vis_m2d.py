@@ -68,13 +68,16 @@ if __name__ == "__main__":
     win = pyglet.window.Window(
         width, height, "Visualizador de archivos m2d", resizable=False
     )
-    T = Triangulation(1e-10)
     puntos = []
     # grilla de puntos
     if mode == "u":
         for i in range(rows):
             for j in range (cols):
                 puntos.append(point(i,j))
+        minx = 0
+        miny = 0
+        maxx = rows
+        maxy = cols
     # grilla de puntos con puntos aleatorios
     elif mode == "ur":
         for i in range(rows):
@@ -84,12 +87,20 @@ if __name__ == "__main__":
             print("n mayor a la cantidad de puntos")
             exit()
         puntos = random.sample(puntos, n)
+        minx = 0
+        miny = 0
+        maxx = rows
+        maxy = cols
     # puntos aleatorios en un rango rectangular
     elif mode == "r":
         for _ in range(n):
             x = random.uniform(-a,a)
             y = random.uniform(-b,b)
             puntos.append(point(x,y))
+        minx = -a
+        miny = -b
+        maxx = a
+        maxy = b
     # puntos aleatorios en un rango circular
     elif mode == "c":
         for _ in range(n):
@@ -98,13 +109,16 @@ if __name__ == "__main__":
             x = r*np.cos(theta)
             y = r*np.sin(theta)
             puntos.append(point(x,y))
+        minx = -r
+        miny = -r
+        maxx = r
+        maxy = r
     else:
         print("Modo no valido")
         exit()
     
-    
-    
-
+    # creo la triangulacion y triangulo los puntos
+    T = Triangulation(minx, maxx, miny, maxy, 1e-10)
     T.triangulate(puntos)
 
     vertices, indices, min_x, min_y, max_x, max_y = read_triangulation(T)

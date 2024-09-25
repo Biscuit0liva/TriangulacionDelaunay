@@ -3,15 +3,18 @@ from point import point
 from Triangle import Triangle
 from utils import incircle, orient2d
 # implementacion de la clase que representa la triangulacion
-# Se compone de una lista con sus los puntos, una con sus triangulos 
+# Se compone de una lista con sus los puntos,un contador de los puntos, una lista con sus triangulos, 
 # , su geometria contenedora y la tolerancia epsilon que usa en los predicados
 
 class Triangulation:
-    def __init__(self, epsilon):
+    def __init__(self, minx, maxx, miny, maxy, epsilon):
         self.points = []        # lista de puntos
         self.cnt = 0            # contador de puntos
         self.triangles = []     # lista de triangulos
-        self.container = None   # geometria contenedora
+        self.minx = minx        # cordenada de los puntos mas pequeña en el eje x
+        self.maxx = maxx        # cordenada de los puntos mas grande en el eje x
+        self.miny = miny        # cordenada de los puntos mas pequeña en el eje y
+        self.maxy = maxy        # cordenada de los puntos mas grande en el eje y
         self.epsilon = epsilon  # tolerancia de la triangulacion
     
     
@@ -202,11 +205,13 @@ class Triangulation:
     # Recibe una lista de puntos y realiza la triangulacion de Delaunay
     # Se inicializa la triangulacion con un triangulo contenedor
     # Se recorren los puntos y se insertan uno a uno
+    # Al terminar, quedan los indices de los puntos de los triangulos desplazados por 3.
+    # Esto se corrige al entregarlos al visualizador, podria hacerlo aqui pero asi evito recorrer demas
     def triangulate(self, points):
         # Crear un triángulo contenedor
-        p1 = point(-1e6, -1e6)
-        p2 = point(1e6, -1e6)
-        p3 = point(0, 1e6)
+        p1 = point(self.minx-1e6, self.miny-1e6)
+        p2 = point(self.maxx+1e6, self.miny-1e6)
+        p3 = point(0, self.maxy+1e6)
         # agregarlos a la lista de puntos
         self.points.append(p1)
         self.points.append(p2)
@@ -214,7 +219,6 @@ class Triangulation:
         self.cnt += 3   # incrementar el contador de puntos
         # crear el triangulo contenedor
         container = Triangle(0, 1, 2)
-        self.container = container
         self.triangles.append(container)
         # permutacion aleatoria de los puntos
         points = random.sample(points, len(points))
@@ -255,6 +259,7 @@ class Triangulation:
                     self.legalize_edge(t3, t3.get_vecino_opuesto(t3.vertices.index(self.cnt-1)))
         # remover el triangulo contenedor
         self.triangles = [t for t in self.triangles if not any(v in [0,1,2] for v in t.vertices)]
+        self.points = self.points[3:]
         
 
     

@@ -7,7 +7,7 @@ def read_triangulation(T: Triangulation):
     max_x = -float("inf")
     min_y = float("inf")
     max_y = -float("inf")
-    for p in T.points[3:]:    # Evita los primeros 3 puntos que son los del contenedor
+    for p in T.points:
         x = p.x
         min_x = x if x < min_x else min_x
         max_x = x if x > max_x else max_x
@@ -16,7 +16,7 @@ def read_triangulation(T: Triangulation):
         max_y = y if y > max_y else min_y
         z = 0.0
         vertex_list += [x, y, z]
-    for t in T.triangles:
+    for t in T.triangles:   # corrijo el desplazamiento de indices
         triangle_list += [
             t.vertices[0]-3,
             t.vertices[1]-3,
