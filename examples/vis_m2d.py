@@ -6,6 +6,7 @@ from pathlib import Path
 import random
 from sys import argv
 import sys
+import time
 # Agregar el directorio raíz del proyecto a sys.path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
@@ -119,7 +120,13 @@ if __name__ == "__main__":
     
     # creo la triangulacion y triangulo los puntos
     T = Triangulation(minx, maxx, miny, maxy, 1e-10)
+    # tomo el tiempo que tarda en triangular
+    start = time.time()
     T.triangulate(puntos)
+    end = time.time()
+    elapsed_time_ms = (end - start) * 1000
+
+    print(f"Triangulacion hecha en: {elapsed_time_ms:.2f} ms")
 
     vertices, indices, min_x, min_y, max_x, max_y = read_triangulation(T)
 
