@@ -1,4 +1,6 @@
 from point import point
+from Edge import Edge
+from utils import orient2d
 
 # Clase que representa los triangulos
 # se inicializa con 3 objetos de la clase point
@@ -44,3 +46,32 @@ class Triangle:
     def replace(self, t_old:'Triangle', t_new:'Triangle')->None:
         i_old = self.vecinos.index(t_old)       # posicion en la lista que remplzar
         self.vecinos[i_old] = t_new             # cambio el objeto en la posicion
+
+    # Metodo para verificar si una arista intersecta alguno de los lados del triangulo
+    # recibe una arista, la lista de puntos de la triangulacion y retorna un booleano
+    def is_intersected(self, edge:Edge, points: list[point]) -> bool:
+        # extraemos los puntos del triangulo y la arista
+        p1,p2,p3 = points[self.vertices[0]], points[self.vertices[1]], points[self.vertices[2]]
+        e1, e2 = edge.p1, edge.p2
+        print(f"p1: {p1}, p2: {p2}, e1: {e1}, e2: {e2}")
+        # verificamos la interseccion con cada lado del triangulo usando orient2D
+        if self.segments_intersect(p1,p2, e1, e2):
+            return True
+        if self.segments_intersect(p2,p3, e1, e2):
+            return True
+        if self.segments_intersect(p3,p1, e1, e2):
+            return True
+        return False
+    
+    # Metodo auxiliar para verificar si dos segmentos se intersectan, usando orient2D
+    # recibe los puntos de los segmentos y retorna un booleano
+    @staticmethod
+    def segments_intersect(p1:point,p2:point, q1:point, q2:point):
+        o1 = orient2d(p1, p2, q1,1e-10)
+        o2 = orient2d(p1, p2, q2,1e-10)
+        o3 = orient2d(q1, q2, p1,1e-10)
+        o4 = orient2d(q1, q2, p2,1e-10)
+        print(f"o1: {o1}, o2: {o2}, o3: {o3}, o4: {o4}")
+        # si las orientaciones son diferentes, significa que estan en lados opuestos
+        return o1*o2 < 0 and o3*o4 < 0
+        

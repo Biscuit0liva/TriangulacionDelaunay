@@ -1,6 +1,7 @@
 import random
 from point import point
 from Triangle import Triangle
+from Edge import Edge
 from utils import incircle, orient2d
 # implementacion de la clase que representa la triangulacion
 # Se compone de una lista con sus los puntos,un contador de los puntos, una lista con sus triangulos, 
@@ -201,6 +202,45 @@ class Triangulation:
                 return True, i
         return False, None
 
+    # Metodo que encuentra el primer triangulo de la triangulacion que intersecta una arista
+    # recibe una arista y retorna el primer triangulo que intersecta
+    def find_first_intersect(self, edge: Edge) -> Triangle:
+        for t in self.triangles:
+            if t.is_intersected(edge, self.points) and edge.p1 in t.vertices:
+                return t
+        return None
+
+    # encuentra todos los triangulos de la triangulacion (en orden) que intersectan una arista dada
+    # recibe una arista y retorna una lista de triangulos
+    def find_triangles_intersecting_edge(self, edge: Edge) -> list[Triangle]:
+        # primero, encuentra el primer triangulo que tiene el punto p_i e intersecta la arista
+        start_triangle = self.find_first_intersect(edge)
+        if start_triangle is None:
+            return []   # si no encuentra un triangulo, retorna una lista vacia
+        
+        visited = set()  # para marcar los triangulos que ya se visitaron
+        intersected_triangles = []  # lista de triangulos que intersectan la arista
+        current_triangle = start_triangle  # comienza en el primer triangulo
+        while current_triangle is not None:
+            # Si ya lo visitamos lo saltamos
+            if current_triangle in visited:
+                continue
+            
+            visited.add(current_triangle)   # Marcar como visitado
+            intersected_triangles.append(current_triangle)  # Agregar a la lista de triangulos intersectados
+            # Revisamos los vecinos para ver cual tiene un lado que intersecta con la arista
+            next_triangle = None
+            for vecino in current_triangle.vecinos:
+                if vecino is not None and vecino not in visited:
+                    # Verificamos si el vecino intersecta con la arista
+                    if vecino.is_intersected(edge, self.points):
+                        next_triangle = vecino
+                        break
+            # Si encontramos un triangulo vecino que intersecta, seguimos el camino, si no queda como None y termina el while
+            current_triangle = next_triangle
+        return intersected_triangles
+        
+
     # Metodo que realiza la triangulacion
     # Recibe una lista de puntos y realiza la triangulacion de Delaunay
     # Se inicializa la triangulacion con un triangulo contenedor
@@ -257,6 +297,9 @@ class Triangulation:
                     self.legalize_edge(t2, t2.get_vecino_opuesto(t2.vertices.index(self.cnt-1)))
                 if t3.get_vecino_opuesto(t3.vertices.index(self.cnt-1)) is not None:
                     self.legalize_edge(t3, t3.get_vecino_opuesto(t3.vertices.index(self.cnt-1)))
+        # recorrer las aristas restringidas y agregarlas a la triangulacion
+
+
         # remover el triangulo contenedor
         self.triangles = [t for t in self.triangles if not any(v in [0,1,2] for v in t.vertices)]
         self.points = self.points[3:]

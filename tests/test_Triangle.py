@@ -7,6 +7,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from point import point
 from Triangle import Triangle
+from Edge import Edge
 
 class TestTriangle(unittest.TestCase):
     def test_creacion_triangulo(self):
@@ -113,6 +114,38 @@ class TestTriangle(unittest.TestCase):
         self.assertEqual(t1.vecinos[1], t6)
         self.assertEqual(t1.vecinos[0], t3)
         self.assertEqual(t1.vecinos[2], t2)
+
+    def test_is_intersected(self):
+        # puntos
+        a = point(0, 0)
+        b = point(1, -1)
+        c = point(1, 1)
+        d = point(2, 0)
+        e = point(2, 1)
+        f = point(-1, 1)
+        g = point(0, -2)
+        h = point(3, -2)
+        ps = [a, b, c, d, e, f, g, h]
+        # triangulos de prueba, se crean con los indices de los puntos en ps
+        t1 = Triangle(0, 1, 2)
+        t2 = Triangle(2, 1, 3)
+        t3 = Triangle(3, 4, 2)
+        t4 = Triangle(5, 0, 2)
+        t5 = Triangle(1, 0, 6)
+        t6 = Triangle(7, 3, 1)
+        # aristas de prueba
+        e1 = Edge(point(-1,0), point(1, 0))
+        e2 = Edge(point(0.16,0.7), point(1.44, -0.8))
+        e3 = Edge(point(0.4,-0.4), point(1.32, 0.78))
+        e4 = Edge(point(0.41,-1.05), c)
+        e5 = Edge(point(-0.4614,1.7801), point(2.5, 0.5))
+        e6 = Edge(point(1,-0.51), point(2.53, -0.55))   # segmento tangente en un vertice
+        self.assertTrue(t1.is_intersected(e1, ps))
+        self.assertTrue(t1.is_intersected(e2, ps))
+        self.assertTrue(t1.is_intersected(e3, ps))
+        self.assertTrue(t1.is_intersected(e4, ps))
+        self.assertFalse(t1.is_intersected(e5, ps))
+        self.assertFalse(t1.is_intersected(e6, ps))
 
 if __name__ == '__main__':
     unittest.main()
