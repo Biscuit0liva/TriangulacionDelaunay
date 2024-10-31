@@ -8,10 +8,12 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from point import point
 from Triangle import Triangle
 from Triangulation import Triangulation
+from Edge import Edge
+from utils import orient2d
 
 class TestTriangle(unittest.TestCase):
     def setUp(self):
-        self.T = Triangulation(1e-10)
+        self.T = Triangulation(-10,10,-10,10,1e-10)
         # puntos
         self.a = point(0, 0)    # 0
         self.b = point(1, -1)   # 1  
@@ -262,11 +264,245 @@ class TestTriangle(unittest.TestCase):
 
     def test_triangulate(self):
         # creo un objeto nuevo
-        T2 = Triangulation(1e-10)
+        T2 = Triangulation(-10,10,-10,10,1e-10)
         # puntos
         ps = [self.a, self.b, self.c, self.d, self.e, self.f, self.g, self.h]
         T2.triangulate(ps)
-        print(T2.triangles)
-        print(T2.points)
+        #print(T2.triangles)
+        #print(T2.points)
+
+    def test_find_first_intersect(self):
+        # creamos triangulos para probar caminos mas largos
+        self.j = point(4.5,-1.28)   # 8
+        self.k = point(3.26,-0.18)  # 9
+        self.T.points.append(self.j)
+        self.T.points.append(self.k)
+        self.T.cnt += 2
+        self.t7 = Triangle(4,3,7)
+        self.t8 = Triangle(7,9,4)
+        self.t9 = Triangle(8,9,7)
+        self.t3.set_vecino(2,self.t7)
+        self.t6.set_vecino(2,self.t7)
+        self.t7.set_vecino(0,self.t6)
+        self.t7.set_vecino(1,self.t8)
+        self.t7.set_vecino(2,self.t3)
+        self.t8.set_vecino(1,self.t7)
+        self.t8.set_vecino(2,self.t9)
+        self.t9.set_vecino(0,self.t8)
+        self.T.triangles.append(self.t7)
+        self.T.triangles.append(self.t8)
+        self.T.triangles.append(self.t9)
+
+        e1 = Edge(self.c, self.h)
+        self.assertEqual(self.T.find_first_intersect(e1), self.t2)
+        e2  = Edge(self.d, self.j)
+        self.assertEqual(self.T.find_first_intersect(e2), self.t7)
+        e3  = Edge(self.f, self.d)
+        self.assertEqual(self.T.find_first_intersect(e3), self.t4)
+        e4  = Edge(self.a, self.e)
+        self.assertEqual(self.T.find_first_intersect(e4), self.t1)
+        e5  = Edge(self.g, self.c)
+        self.assertEqual(self.T.find_first_intersect(e5), self.t5)
+
+    def test_find_triangles_intersecting_edge(self):
+        # creamos triangulos para probar caminos mas largos
+        self.j = point(4.5,-1.28)   # 8
+        self.k = point(3.26,-0.18)  # 9
+        self.T.points.append(self.j)
+        self.T.points.append(self.k)
+        self.T.cnt += 2
+        self.t7 = Triangle(4,3,7)
+        self.t8 = Triangle(7,9,4)
+        self.t9 = Triangle(8,9,7)
+        self.t3.set_vecino(2,self.t7)
+        self.t6.set_vecino(2,self.t7)
+        self.t7.set_vecino(0,self.t6)
+        self.t7.set_vecino(1,self.t8)
+        self.t7.set_vecino(2,self.t3)
+        self.t8.set_vecino(1,self.t7)
+        self.t8.set_vecino(2,self.t9)
+        self.t9.set_vecino(0,self.t8)
+        self.T.triangles.append(self.t7)
+        self.T.triangles.append(self.t8)
+        self.T.triangles.append(self.t9)
+        # Pruebas con aristas que intersectan varios triangulos
+        e1 = Edge(self.c, self.h)
+        self.assertEqual(self.T.find_triangles_intersecting_edge(e1), [self.t2, self.t6])
+        e2  = Edge(self.d, self.j)
+        self.assertEqual(self.T.find_triangles_intersecting_edge(e2), [self.t7, self.t8, self.t9])
+        e3  = Edge(self.f, self.d)
+        self.assertEqual(self.T.find_triangles_intersecting_edge(e3), [self.t4, self.t1, self.t2])
+        e4 = Edge(self.a, self.e)
+        self.assertEqual(self.T.find_triangles_intersecting_edge(e4), [self.t1, self.t2, self.t3])
+        e5 = Edge(self.g, self.c)
+        self.assertEqual(self.T.find_triangles_intersecting_edge(e5), [self.t5, self.t1])
+        # test con un caso complejo, una arista que intersecta un trio de vecinos mutuos
+        T2 = Triangulation(-10,10,-10,10,1e-10)
+        a = point(-3,0)  # 0
+        b = point(-2,-2)    # 1
+        c = point(0,3)  # 2
+        d = point(0,0.5)    # 3
+        e = point(2,-2) # 4
+        f = point(3,0)  # 5
+        T2.points = [a,b,c,d,e,f]
+        T2.cnt = 6
+        t0 = Triangle(0,1,2)
+        t1 = Triangle(1,3,2)
+        t2 = Triangle(1,4,3)
+        t3 = Triangle(3,4,2)
+        t4 = Triangle(2,4,5)
+        t0.set_vecino(0,t1)
+        t1.set_vecino(0,t3)
+        t1.set_vecino(1,t0)
+        t1.set_vecino(2,t2)
+        t2.set_vecino(0,t3)
+        t2.set_vecino(1,t1)
+        t3.set_vecino(0,t4)
+        t3.set_vecino(1,t1)
+        t3.set_vecino(2,t2)
+        t4.set_vecino(2,t3)
+        T2.triangles = [t0,t1,t2,t3,t4]
+        e6 = Edge(a,f)
+        self.assertEqual(T2.find_first_intersect(e6), t0)
+        self.assertEqual(T2.find_triangles_intersecting_edge(e6), [t0,t1,t2,t3,t4])
+        # Lo mismo pero ahora con C en la arista, haciendolo colineal
+        T2.points[2] = point(0,0)
+        self.assertEqual(T2.find_first_intersect(e6), None)
+        self.assertEqual(T2.find_triangles_intersecting_edge(e6), [])
+        
+    def test_find_collinear_segments(self):
+        T2 = Triangulation(-10,10,-10,10,1e-10)
+        a = point(-3,0)  # 0
+        b = point(-2,-2)    # 1
+        c = point(0,3)  # 2
+        d = point(0,0)    # 3
+        e = point(2,-2) # 4
+        f = point(3,0)  # 5
+        T2.points = [a,b,c,d,e,f]
+        T2.cnt = 6
+        t0 = Triangle(0,1,2)
+        t1 = Triangle(1,3,2)
+        t2 = Triangle(1,4,3)
+        t3 = Triangle(3,4,2)
+        t4 = Triangle(2,4,5)
+        t0.set_vecino(0,t1)
+        t1.set_vecino(0,t3)
+        t1.set_vecino(1,t0)
+        t1.set_vecino(2,t2)
+        t2.set_vecino(0,t3)
+        t2.set_vecino(1,t1)
+        t3.set_vecino(0,t4)
+        t3.set_vecino(1,t1)
+        t3.set_vecino(2,t2)
+        t4.set_vecino(2,t3)
+        T2.triangles = [t0,t1,t2,t3,t4]
+        e6 = Edge(a,f)
+        self.assertEqual(T2.find_first_intersect(e6), t0)
+        self.assertEqual(T2.find_triangles_intersecting_edge(e6), [t0,t1])
+
+    def test_insert_edge(self):
+        T2 = Triangulation(-10,10,-10,10,1e-10)
+        a = point(-3,0)  # 0
+        b = point(-2,-2)    # 1
+        c = point(0,3)  # 2
+        d = point(0,0.5)    # 3
+        e = point(2,-2) # 4
+        f = point(3,0)  # 5
+        T2.points = [a,b,c,d,e,f]
+        T2.cnt = 6
+        t0 = Triangle(0,1,2)
+        t1 = Triangle(1,3,2)
+        t2 = Triangle(1,4,3)
+        t3 = Triangle(3,4,2)
+        t4 = Triangle(2,4,5)
+        t0.set_vecino(0,t1)
+        t1.set_vecino(0,t3)
+        t1.set_vecino(1,t0)
+        t1.set_vecino(2,t2)
+        t2.set_vecino(0,t3)
+        t2.set_vecino(1,t1)
+        t3.set_vecino(0,t4)
+        t3.set_vecino(1,t1)
+        t3.set_vecino(2,t2)
+        t4.set_vecino(2,t3)
+        T2.triangles = [t0,t1,t2,t3,t4]
+        e6 = Edge(a,f)
+        self.assertEqual(T2.find_first_intersect(e6), t0)
+        self.assertEqual(T2.find_triangles_intersecting_edge(e6), [t0,t1,t2,t3,t4])
+        T2.insert_edge(e6)
+        self.assertTrue(T2.triangles.__contains__(Triangle(0,1,4)))
+        self.assertTrue(T2.triangles.__contains__(Triangle(0,4,5)))
+        self.assertTrue(T2.triangles.__contains__(Triangle(0,5,3)))
+        self.assertTrue(T2.triangles.__contains__(Triangle(3,5,2)))
+        self.assertTrue(T2.triangles.__contains__(Triangle(2,0,3)))
+        
+    
+    def test_can_flip(self):
+        T2 = Triangulation(-10,10,-10,10,1e-10)
+        a = point(-3,0)  # 0
+        b = point(-2,-2)    # 1
+        c = point(0,3)  # 2
+        d = point(0,0.5)    # 3
+        e = point(2,-2) # 4
+        f = point(3,0)  # 5
+        T2.points = [a,b,c,d,e,f]
+        T2.cnt = 6
+        t0 = Triangle(0,1,2)
+        t1 = Triangle(1,3,2)
+        t2 = Triangle(1,4,3)
+        t3 = Triangle(3,4,2)
+        t4 = Triangle(2,4,5)
+        t0.set_vecino(0,t1)
+        t1.set_vecino(0,t3)
+        t1.set_vecino(1,t0)
+        t1.set_vecino(2,t2)
+        t2.set_vecino(0,t3)
+        t2.set_vecino(1,t1)
+        t3.set_vecino(0,t4)
+        t3.set_vecino(1,t1)
+        t3.set_vecino(2,t2)
+        t4.set_vecino(2,t3)
+        T2.triangles = [t0,t1,t2,t3,t4]
+        e6 = Edge(a,f)
+        self.assertTrue(T2.can_flip(t0,t1))
+        self.assertTrue(T2.can_flip(t1,t0))
+        self.assertFalse(T2.can_flip(t2,t3))
+        self.assertFalse(T2.can_flip(t3,t2))
+        self.assertFalse(T2.can_flip(t1,t2))
+        self.assertFalse(T2.can_flip(t2,t1))
+        self.assertFalse(T2.can_flip(t1,t3))
+        self.assertFalse(T2.can_flip(t3,t1))
+        self.assertTrue(T2.can_flip(t3,t4))
+        self.assertTrue(T2.can_flip(t4,t3))
+
+    def test_triangulate_with_edges(self):
+        T2 = Triangulation(-10,10,-10,10,1e-10)
+        a = point(-3,0)  # 0
+        b = point(-2,-2)    # 1
+        c = point(0,3)  # 2
+        d = point(0,0.5)    # 3
+        e = point(2,-2) # 4
+        f = point(3,0)  # 5
+        points = [a,b,c,d,e,f]
+        e6 = Edge(a,f)
+        edges = [e6]
+        T2.triangulate(points,edges)
+        print([f"vertice {i}: {p}" for i,p in enumerate(T2.points)])
+        print([f"Triangulo {i}: {T2.points[t.vertices[0]]} {T2.points[t.vertices[1]]} {T2.points[t.vertices[2]]}" for i,t in enumerate(T2.triangles)])
+        # creo un objeto nuevo
+        T3 = Triangulation(-10,10,-10,10,1e-10)
+        # puntos
+        ps = [self.a, self.b, self.c, self.d, self.e, self.f, self.g, self.h]
+        edges = [Edge(self.e, self.g)]
+        T3.triangulate(ps,edges)
+        print([f"Triangulo {i}: {T3.points[t.vertices[0]]} {T3.points[t.vertices[1]]} {T3.points[t.vertices[2]]}" for i,t in enumerate(T3.triangles)])
+    
+    
+        
+
+        
+
+
+
 if __name__ == '__main__':
     unittest.main()

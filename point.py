@@ -8,6 +8,12 @@ class point:
     def __repr__(self) -> str:
         return f"Punto({self.x},{self.y})"
     
-    def __eq__(self, otro) -> bool:
-        return self.x == otro.x and self.y == otro.y
+    def __eq__(self, other):
+        if isinstance(other, point):
+            return self.x == other.x and self.y == other.y
+        return False
+
+    def __hash__(self):
+        return hash((self.x, self.y))
+
     

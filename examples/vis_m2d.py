@@ -7,10 +7,12 @@ import random
 from sys import argv
 import sys
 import time
+import re
 # Agregar el directorio raíz del proyecto a sys.path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from point import point
+from Edge import Edge
 from Triangle import Triangle
 from Triangulation import Triangulation
 from algorithms.load import read_triangulation
@@ -56,6 +58,24 @@ try:
     elif mode == "c":       # puntos aleatorios, en un rango circular
         radio = int(argv[2])
         n = int(argv[3])
+    
+    # arista restringida
+    elif mode == "er":
+        a = int(argv[2])
+        b = int(argv[3])    
+        n = int(argv[4])
+        edges = []
+        for i in range(5,len(argv)):
+            try:
+                edge = eval(argv[i])
+                if (isinstance(edge, tuple) and len(edge) == 2 and
+                    all(isinstance(point,tuple) and len(point)==2 for point in edge)):
+                    edges.append(edge)
+                else:
+                    raise ValueError(f"Formato de arista inválido: {sys.argv[i]}")
+            except:
+                print(f"Error: El argumento {sys.argv[i]} no es una arista válida.")
+                sys.exit(1)
     else:
         print("Modo no valido")
         exit()
@@ -70,6 +90,7 @@ if __name__ == "__main__":
         width, height, "Visualizador de archivos m2d", resizable=False
     )
     puntos = []
+    aristas = None
     # grilla de puntos
     if mode == "u":
         for i in range(rows):
@@ -114,6 +135,23 @@ if __name__ == "__main__":
         miny = -r
         maxx = r
         maxy = r
+    # arista restringida
+    # puntos aleatorios en un rango rectangular
+    elif mode == "er":
+        for _ in range(n):
+            x = random.uniform(-a,a)
+            y = random.uniform(-b,b)
+            puntos.append(point(x,y))
+        minx = -a
+        miny = -b
+        maxx = a
+        maxy = b
+        aristas = []
+        for e in edges:
+            p1 = point(e[0][0],e[0][1])
+            p2 = point(e[1][0],e[1][1])
+            aristas.append(Edge(p1,p2))
+
     else:
         print("Modo no valido")
         exit()
@@ -122,21 +160,21 @@ if __name__ == "__main__":
     T = Triangulation(minx, maxx, miny, maxy, 1e-10)
     # tomo el tiempo que tarda en triangular
     start = time.time()
-    T.triangulate(puntos)
+    T.triangulate(puntos, aristas)
     end = time.time()
     elapsed_time_ms = (end - start) * 1000
 
     print(f"Triangulacion hecha en: {elapsed_time_ms:.2f} ms")
 
-    vertices, indices, min_x, min_y, max_x, max_y = read_triangulation(T)
+    vertices, indices, restricted_edge_list, restricted_edge_colors, min_x, min_y, max_x, max_y = read_triangulation(T)
 
     range_x = abs(max_x - min_x)
     range_y = abs(max_y - min_y)
     zoom = max([range_x, range_y]) / 2
 
     controller.zoom = 0.8 / zoom
-    controller.x = 1 - range_x / zoom
-    controller.y = 1 - range_y / zoom
+    controller.x = 0
+    controller.y = 0
 
     with open(path_to_this_file / "../shaders/simple_vertex_program.glsl") as f:
         vertex_source_code = f.read()
@@ -153,6 +191,28 @@ if __name__ == "__main__":
     )
     gpu_data.position[:] = vertices
     gpu_data.color[:] = np.full(len(vertices), 0.5)
+
+    # ARISTASS
+    print(f"restricted_edge_list:{restricted_edge_list}")
+    print(f"restricted_edge_list:{restricted_edge_colors}")
+    # Crear el buffer para las aristas restringidas
+    edge_vertices = []
+    for edge in restricted_edge_list:
+        v1_index = edge[0]
+        v2_index = edge[1]
+        edge_vertices.append(vertices[v1_index * 3:v1_index * 3 + 3])
+        edge_vertices.append(vertices[v2_index * 3:v2_index * 3 + 3])
+    edge_vertices_np = np.array(edge_vertices, dtype=np.float32).flatten()
+
+    # Crear el buffer para los colores de las aristas restringidas
+    edge_color = np.array([1.0, 0.0, 0.0], dtype=np.float32)  # Rojo para las aristas restringidas
+    restricted_edge_colors = np.tile(edge_color, (len(restricted_edge_list) * 2, 1)).flatten()
+
+    gpu_edges = pipeline.vertex_list(
+        len(restricted_edge_list)*2, GL.GL_LINES,
+    )
+    gpu_edges.position[:] = edge_vertices_np
+    gpu_edges.color[:] = restricted_edge_colors
 
     pipeline.use()
 
@@ -209,6 +269,9 @@ if __name__ == "__main__":
         pipeline["scale"] = uniformScale(controller.zoom).reshape(16, 1, order="F")
 
         gpu_data.draw(GL.GL_TRIANGLES)
+
+        # Dibujar las aristas restringidas
+        gpu_edges.draw(GL.GL_LINES)
 
     def update(time):
         controller.x += controller.vx

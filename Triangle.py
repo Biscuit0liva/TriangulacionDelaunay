@@ -53,7 +53,7 @@ class Triangle:
         # extraemos los puntos del triangulo y la arista
         p1,p2,p3 = points[self.vertices[0]], points[self.vertices[1]], points[self.vertices[2]]
         e1, e2 = edge.p1, edge.p2
-        print(f"p1: {p1}, p2: {p2}, e1: {e1}, e2: {e2}")
+        #print(f"p1: {p1}, p2: {p2}, e1: {e1}, e2: {e2}")
         # verificamos la interseccion con cada lado del triangulo usando orient2D
         if self.segments_intersect(p1,p2, e1, e2):
             return True
@@ -71,7 +71,17 @@ class Triangle:
         o2 = orient2d(p1, p2, q2,1e-10)
         o3 = orient2d(q1, q2, p1,1e-10)
         o4 = orient2d(q1, q2, p2,1e-10)
-        print(f"o1: {o1}, o2: {o2}, o3: {o3}, o4: {o4}")
+        #print(f"o1: {o1}, o2: {o2}, o3: {o3}, o4: {o4}")
         # si las orientaciones son diferentes, significa que estan en lados opuestos
         return o1*o2 < 0 and o3*o4 < 0
+    
+    def __hash__(self):
+        # Devuelve un hash basado en los vértices, asumiendo que vertices es una lista o tupla de puntos
+        return hash(tuple(sorted(self.vertices)))  # Ordena los vértices para que el hash sea consistente
+
+    def __eq__(self, other):
+        # Comprueba si otro triángulo es igual basándose en los vértices
+        if isinstance(other, Triangle):
+            return set(self.vertices) == set(other.vertices)
+        return False
         

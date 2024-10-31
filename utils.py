@@ -35,3 +35,5 @@ def incircle(p,a,b,c, epsilon):
             return 1  # El punto está dentro del círculo
         else:
             return -1  # El punto está fuera del círculo
+        
+

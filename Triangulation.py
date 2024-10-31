@@ -12,6 +12,7 @@ class Triangulation:
         self.points = []        # lista de puntos
         self.cnt = 0            # contador de puntos
         self.triangles = []     # lista de triangulos
+        self.edges = []         # lista de aristas restringidas
         self.minx = minx        # cordenada de los puntos mas pequeña en el eje x
         self.maxx = maxx        # cordenada de los puntos mas grande en el eje x
         self.miny = miny        # cordenada de los puntos mas pequeña en el eje y
@@ -205,11 +206,52 @@ class Triangulation:
     # Metodo que encuentra el primer triangulo de la triangulacion que intersecta una arista
     # recibe una arista y retorna el primer triangulo que intersecta
     def find_first_intersect(self, edge: Edge) -> Triangle:
-        for t in self.triangles:
-            if t.is_intersected(edge, self.points) and edge.p1 in t.vertices:
-                return t
-        return None
+        # forma lenta que necesita recorrer todos los triangulos
+        #for t in self.triangles:
+        #    if t.is_intersected(edge, self.points) and edge.p1 in [self.points[v] for v in t.vertices]:
+        #        return t
+        #return None
+        # forma rapida que solo recorre los triangulos vecinos usando jump and walk
+        
+        current_triangle = self.triangles[0]
+        visited = set()  # para marcar los triangulos que ya se visitaron
+        while True:
+            if current_triangle in visited:
+                print("Ciclo infinito omaigaaaaaa") 
+                return None
+            visited.add(current_triangle)
+            # verificar si el triangulo actual contiene al punto inicial de la arista
+            if edge.p1 in [self.points[v] for v in current_triangle.vertices]:
+                # verificar si la arista intersecta el triangulo
+                for i in range(3):
+                    v1, v2 = current_triangle.get_arista_opuesta(i)
+                    arista_compartida = Edge(self.points[v1], self.points[v2])
+                    if arista_compartida.intersect_with(edge):
+                        # si intersecta, el triangulo actual es el primero que intersecta la arista
+                        return current_triangle
+                # si no intersecta, avanzar en direccion al punto p1 de la arista
+                for i in range(3):
+                    # obtener los dos puntos de la arista opuesta al vértice i
+                    v1, v2 = current_triangle.get_arista_opuesta(i)
+                    o = orient2d(edge.p1, self.points[v1], self.points[v2], self.epsilon)
+                    # si orient2D devuelve negativo, el punto está fuera del lado de la arista
+                    if  o<= 0 and current_triangle.vecinos[i] is not None:
+                        # revisar que no es uno ya visitdo
+                        if current_triangle.vecinos[i] not in visited:
+                            current_triangle = current_triangle.vecinos[i]
+                            break
+            else:
+                # Si no lo contiene, solo avanzo en direccion al punto p1 de la arista
+                for i in range(3):
+                    # obtener los dos puntos de la arista opuesta al vértice i
+                    v1, v2 = current_triangle.get_arista_opuesta(i)
+                    # si orient2D devuelve negativo, el punto está fuera del lado de la arista
+                    if orient2d(edge.p1, self.points[v1], self.points[v2], self.epsilon) < 0:
+                        # moverse al triángulo que comparte la arista
+                        current_triangle = current_triangle.vecinos[i]
+                        break
 
+                    
     # encuentra todos los triangulos de la triangulacion (en orden) que intersectan una arista dada
     # recibe una arista y retorna una lista de triangulos
     def find_triangles_intersecting_edge(self, edge: Edge) -> list[Triangle]:
@@ -221,33 +263,99 @@ class Triangulation:
         visited = set()  # para marcar los triangulos que ya se visitaron
         intersected_triangles = []  # lista de triangulos que intersectan la arista
         current_triangle = start_triangle  # comienza en el primer triangulo
-        while current_triangle is not None:
-            # Si ya lo visitamos lo saltamos
-            if current_triangle in visited:
-                continue
-            
+        previous_triangle = None
+        while current_triangle and current_triangle not in visited:
             visited.add(current_triangle)   # Marcar como visitado
             intersected_triangles.append(current_triangle)  # Agregar a la lista de triangulos intersectados
-            # Revisamos los vecinos para ver cual tiene un lado que intersecta con la arista
-            next_triangle = None
-            for vecino in current_triangle.vecinos:
-                if vecino is not None and vecino not in visited:
-                    # Verificamos si el vecino intersecta con la arista
-                    if vecino.is_intersected(edge, self.points):
-                        next_triangle = vecino
+            
+            # Encuentra el vecino cuya arista compartida intersecta la arista restringida
+            for i,vecino in enumerate(current_triangle.vecinos):
+                if vecino and vecino != previous_triangle:
+                    v1, v2 = current_triangle.get_arista_opuesta(i)
+                    arista_compartida = Edge(self.points[v1], self.points[v2])
+                    if arista_compartida.intersect_with(edge):
+                        previous_triangle = current_triangle
+                        current_triangle = vecino
                         break
-            # Si encontramos un triangulo vecino que intersecta, seguimos el camino, si no queda como None y termina el while
-            current_triangle = next_triangle
+            else:
+                #print(f"No se encontro vecino, se sale del loop, ultimo triangulo: {current_triangle}")
+                break
         return intersected_triangles
+
+    # Encuentra los segmentos colineales a una arista
+    # Recibe una lista de triangulos en orden, para buscar puntos colineales
+    # Retorna una lista de listas de triangulos, correspondientes a los segmentos colineales
+    def find_collinear_segments(self, triangles: list[Triangle], edge:Edge):
+        collinear_segments = [edge.p1, edge.p2]  # lista de segmentos colineales
+
+        for triangle in triangles:
+            for vertex in triangle.vertices:
+                point = self.points[vertex]
+                # Evita agregar los puntos de la arista
+                if point != edge.p1 or point != edge.p2:
+                    continue
+                # Si el punto es colineal con la arista, agregarlo a la lista
+                if orient2d(edge.p1, edge.p2, point, self.epsilon) == 0:
+                    collinear_segments.append(point)
+
+        return collinear_segments
+    
+    # Recibe una arista y la inserta en la triangulacion
+    def insert_edge(self, edge:Edge):
+        # Encontrar camino de triangulos intersectados por la arista
+        intersected_triangles = self.find_triangles_intersecting_edge(edge)
+        # Itero mientras la arista no sea aun construida
+        while len(intersected_triangles)>0:
+            # Itero sobre pares de triangulos consecutivos en el camino
+            for i in range(len(intersected_triangles)-1):
+                t1 = intersected_triangles[i]
+                t2 = intersected_triangles[i+1]
+                if self.can_flip(t1,t2):
+                    self.flip(t1,t2)
+                    # actualizar el path de triangulos intersectados
+                    intersected_triangles = self.find_triangles_intersecting_edge(edge)
+                    break
+
+
+    # Metodo que verifica si se puede realizar un flip en una arista
+    # Entre dos triangulos, determina si forman un poligono convexo
+    # Recibe dos triangulos adyacentes y retorna un booleano
+    def can_flip(self, t1:Triangle, t2:Triangle):
+        # Busco la arista compartida
+        i_1 = t1.vecinos.index(t2)                       # punto de t1 al que es opuesto t2
+        i_2 = t2.vecinos.index(t1)                       # punto de t2 al que es opuesto t1
+        arista_compartida = t1.get_arista_opuesta(i_1)   # vj vk
+        # obtengo los vertices
+        vi = t1.vertices[i_1]
+        vj,vk = arista_compartida
+        vl = t2.vertices[i_2]
+        # extraigo los puntos
+        vi = self.points[vi]
+        vj = self.points[vj]
+        vk = self.points[vk]
+        vl = self.points[vl]
+        # verificar convexidad usando orientaciones
+        if (orient2d(vi,vj,vl, self.epsilon)>0 and
+            orient2d(vj,vl,vk, self.epsilon)>0 and
+            orient2d(vl,vk,vi, self.epsilon)>0 and
+            orient2d(vk,vi,vj, self.epsilon)>0):
+            return True
+        else:
+            return False
+        
+
+
+
+
         
 
     # Metodo que realiza la triangulacion
-    # Recibe una lista de puntos y realiza la triangulacion de Delaunay
+    # Recibe una lista de puntos, aristas y realiza la triangulacion de Delaunay
     # Se inicializa la triangulacion con un triangulo contenedor
     # Se recorren los puntos y se insertan uno a uno
     # Al terminar, quedan los indices de los puntos de los triangulos desplazados por 3.
-    # Esto se corrige al entregarlos al visualizador, podria hacerlo aqui pero asi evito recorrer demas
-    def triangulate(self, points):
+    # Esto se corrige recorriendo los triangulos y cambiando sus indices de puntos
+    def triangulate(self, points, edges = None):
         # Crear un triángulo contenedor
         p1 = point(self.minx-1e6, self.miny-1e6)
         p2 = point(self.maxx+1e6, self.miny-1e6)
@@ -260,6 +368,30 @@ class Triangulation:
         # crear el triangulo contenedor
         container = Triangle(0, 1, 2)
         self.triangles.append(container)
+        # preprocesamiento para las aristas restringidas. Por ahora asumo que no hay aristas que se intersecten
+        # agregar los vertices de las aristas restringidas a la lista de puntos si es que no estan
+        if edges is not None:
+            for edge in edges:
+                if edge.p1 not in points:
+                    points.append(edge.p1)
+                if edge.p2 not in points:
+                    points.append(edge.p2)
+            # Revisar que no hayan puntos en las aristas, si los hay, se segmenta la aristas con este punto
+            for edge in edges:
+                for p in points:
+                    if p in [edge.p1, edge.p2]:
+                        continue
+                    # verifica colinealidad y si el punto esta dentro del segmento
+                    if (orient2d(p, edge.p1, edge.p2, self.epsilon) == 0 and
+                        min(edge.p1.x, edge.p2.x) <= p.x <= max(edge.p1.x, edge.p2.x) and
+                        min(edge.p1.y, edge.p2.y) <= p.y <= max(edge.p1.y, edge.p2.y)):
+                        # segmentar la arista
+                        edge1 = Edge(edge.p1, p)
+                        edge2 = Edge(p, edge.p2)
+                        edges.append(edge1)
+                        edges.append(edge2)
+                        edges.remove(edge)
+        self.edges = edges
         # permutacion aleatoria de los puntos
         points = random.sample(points, len(points))
         # recorrer los puntos y agregarlos a la triangulacion
@@ -298,10 +430,17 @@ class Triangulation:
                 if t3.get_vecino_opuesto(t3.vertices.index(self.cnt-1)) is not None:
                     self.legalize_edge(t3, t3.get_vecino_opuesto(t3.vertices.index(self.cnt-1)))
         # recorrer las aristas restringidas y agregarlas a la triangulacion
+        if edges is not None:
+            for edge in edges:
+                self.insert_edge(edge)
 
 
         # remover el triangulo contenedor
         self.triangles = [t for t in self.triangles if not any(v in [0,1,2] for v in t.vertices)]
+        # corregir indices al remover los 3 primeros puntos
+        for t in self.triangles:
+            for i in range(3):
+                t.vertices[i] -= 3
         self.points = self.points[3:]
         
 
