@@ -16,4 +16,9 @@ class point:
     def __hash__(self):
         return hash((self.x, self.y))
 
+    def __sub__(self, other):
+        return point(self.x - other.x, self.y - other.y)
+    
+    def norm(self):
+        return (self.x**2 + self.y**2)**0.5
     

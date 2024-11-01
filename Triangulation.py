@@ -442,7 +442,48 @@ class Triangulation:
             for i in range(3):
                 t.vertices[i] -= 3
         self.points = self.points[3:]
+
+
+    # Metodo que entrega el lado mas largo de un triangulo
+    # En caso de que algunos lados sean iguales, tomara el primero que encuentre
+    # Siguiendo el orden en que se definen los vertices del triangulo
+    # Recibe un triangulo y retorna el indice del vertice opuesto al lado mas largo
+    def longest_edge(self, t:Triangle):
+        e0a, e0b = t.get_arista_opuesta(0)
+        e1a, e1b = t.get_arista_opuesta(1)
+        e2a, e2b = t.get_arista_opuesta(2)
+
+        l0 = (self.points[e0a]-self.points[e0b]).norm()
+        l1 = (self.points[e1a]-self.points[e1b]).norm()
+        l2 = (self.points[e2a]-self.points[e2b]).norm()
+        if l0 >= l1 and l0 >= l2:
+            return 0
+        elif l1 >= l0 and l1 >= l2:
+            return 1
+        else:
+            return 2
         
+
+    # Metodo que encuentra LEPP en la triangulacion
+    # Recibe un triangulo y retorna el LEPP de este como una lista
+    def find_lepp(self, t:Triangle):
+        lepp = [t]
+        current_triangle = t
+        while True:
+            longest_edge = self.longest_edge(current_triangle)
+            vecino = current_triangle.vecinos[longest_edge]
+            # Primera condicione de termino, si se llega al borde de la triangulacion
+            if vecino is None:
+                break
+            # Segunda condicion de termino, si es una arista terminal (la arista mas larga es la que comparte con el triangulo anterior en LEPP)
+            if vecino == lepp[-1]:
+                # se agrega y termina la busqueda
+                lepp.append(vecino)
+                break
+            # Si no se termino, se agrega el vecino y se sigue buscando
+            lepp.append(vecino)
+            current_triangle = vecino
+            
 
     
         

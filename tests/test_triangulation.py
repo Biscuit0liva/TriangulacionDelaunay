@@ -497,10 +497,13 @@ class TestTriangle(unittest.TestCase):
         T3.triangulate(ps,edges)
         print([f"Triangulo {i}: {T3.points[t.vertices[0]]} {T3.points[t.vertices[1]]} {T3.points[t.vertices[2]]}" for i,t in enumerate(T3.triangles)])
     
-    
-        
-
-        
+    def test_longest_edge(self):
+        self.assertEqual(self.T.longest_edge(self.t1), 0)
+        self.assertEqual(self.T.longest_edge(self.t2), 2)
+        self.assertEqual(self.T.longest_edge(self.t3), 1)
+        self.assertEqual(self.T.longest_edge(self.t4), 1)
+        self.assertEqual(self.T.longest_edge(self.t5), 0)
+        self.assertEqual(self.T.longest_edge(self.t6), 1)
 
 
 
