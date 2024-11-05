@@ -470,20 +470,18 @@ class Triangulation:
         lepp = [t]
         current_triangle = t
         while True:
+            print("a")
             longest_edge = self.longest_edge(current_triangle)
             vecino = current_triangle.vecinos[longest_edge]
+            print(vecino)
             # Primera condicione de termino, si se llega al borde de la triangulacion
-            if vecino is None:
-                break
             # Segunda condicion de termino, si es una arista terminal (la arista mas larga es la que comparte con el triangulo anterior en LEPP)
-            if vecino == lepp[-1]:
-                # se agrega y termina la busqueda
-                lepp.append(vecino)
+            if vecino is None or (len(lepp)>1 and vecino == lepp[-2]):
                 break
             # Si no se termino, se agrega el vecino y se sigue buscando
             lepp.append(vecino)
             current_triangle = vecino
-            
+        return lepp
 
     
         

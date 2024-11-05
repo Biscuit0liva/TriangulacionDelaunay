@@ -504,6 +504,28 @@ class TestTriangle(unittest.TestCase):
         self.assertEqual(self.T.longest_edge(self.t4), 1)
         self.assertEqual(self.T.longest_edge(self.t5), 0)
         self.assertEqual(self.T.longest_edge(self.t6), 1)
+    
+    def test_find_lepp(self):
+        self.assertEqual(self.T.find_lepp(self.t1), [self.t1, self.t2])
+        self.assertEqual(self.T.find_lepp(self.t2), [self.t2, self.t1])
+        self.assertEqual(self.T.find_lepp(self.t3), [self.t3, self.t2, self.t1])
+        # caso borde, t4 tiene su lado mas largo en un borde directo
+        self.assertEqual(self.T.find_lepp(self.t4), [self.t4])
+        # caso borde, t5 tiene su lado mas largo en un borde directo
+        self.assertEqual(self.T.find_lepp(self.t5), [self.t5])
+        # caso isoceles t6, se agregaran dos triangulos para corroborar que toma el primero que se encuentra
+        ta = Triangle(7,1,6)
+        tb = Triangle(7,4,3)
+        ta.set_vecino(0,self.t5)
+        ta.set_vecino(2,self.t6)
+        tb.set_vecino(0,self.t3)
+        tb.set_vecino(1,self.t6)
+        self.t6.set_vecino(1,ta)
+        self.t6.set_vecino(2,tb)
+        self.T.triangles.append(ta)
+        self.T.triangles.append(tb)
+        # Lepp se ira a ta, que seria la arista opuesta al segundo vertice de t6, no a tb pues es la arista opuesta al tercer vertice
+        self.assertEqual(self.T.find_lepp(self.t6), [self.t6, ta])
 
 
 
