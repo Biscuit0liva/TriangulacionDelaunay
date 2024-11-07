@@ -273,6 +273,56 @@ if __name__ == "__main__":
         # Dibujar las aristas restringidas
         gpu_edges.draw(GL.GL_LINES)
 
+    @win.event
+    def on_mouse_scroll(x, y, button, modifiers):
+        if button == mouse.LEFT:
+            # Convertir las coordenadas de la pantalla a las coordenadas de la escena
+            scene_x = (x/width-0.5)*range_x/controller.zoom-controller.x
+            scene_y = (y/width-0.5)*range_y/controller.zoom-controller.y
+            # Encontrar el triangulo clickeado
+            clicked_triangle = T.find_containing_triangle(point(scene_x, scene_y))
+            if clicked_triangle:
+                # Obtener el camino LEPP del triangulo clickeado
+                lepp_triangles = T.find_lepp(clicked_triangle)
+                # Preparar la lista de aristas veredes
+                green_edges = []
+                for triangle in lepp_triangles:
+                    for i in range(3):
+                        i1, i2 = triangle.get_arista_opuesta(i)
+                        v1 = T.points[i1]
+                        v2 = T.points[i2]
+                        green_edges.extend([v1.x,v1.y,0,v2.x,v2.y,0])
+                # Cargar las aristas del LEPP en GPU con color verde
+                green_edge_colors = np.array([0.0,1.0,0.0]*(len(green_edges)//3), dtype=np.float32) # Verde
+
+                gpu_green_edges = pipeline.vertex_list(
+                    len(green_edges) // 3, GL.GL_LINES,
+                )
+                gpu_green_edges.position[:] = green_edges
+                gpu_green_edges.colors[:]  = green_edge_colors
+                # Redibujar para mostrar las aristas en verde
+                @win.event
+                def on_draw():
+                    GL.glClearColor(0.0, 0.0, 0.0, 1.0)
+                    GL.glEnable(GL.GL_BLEND)
+                    GL.glBlendFunc(GL.GL_SRC_ALPHA, GL.GL_ONE_MINUS_SRC_ALPHA)
+                    GL.glPolygonMode(GL.GL_FRONT_AND_BACK, GL.GL_LINE)
+                    GL.glPointSize(5)
+
+                    win.clear()
+                    pipeline.use()
+
+                    pipeline["translate"] = translate(controller.x, controller.y, 0.0).reshape(16, 1, order="F")
+                    pipeline["scale"] = uniformScale(controller.zoom).reshape(16, 1, order="F")
+
+                    gpu_data.draw(GL.GL_TRIANGLES)
+
+                    # Dibujar las aristas en rojo y verde
+                    gpu_edges.draw(GL.GL_LINES)
+                    gpu_green_edges.draw(GL.GL_LINES)
+
+
+
     def update(time):
         controller.x += controller.vx
         controller.y += controller.vy
