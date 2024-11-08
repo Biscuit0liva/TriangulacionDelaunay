@@ -206,13 +206,6 @@ class Triangulation:
     # Metodo que encuentra el primer triangulo de la triangulacion que intersecta una arista
     # recibe una arista y retorna el primer triangulo que intersecta
     def find_first_intersect(self, edge: Edge) -> Triangle:
-        # forma lenta que necesita recorrer todos los triangulos
-        #for t in self.triangles:
-        #    if t.is_intersected(edge, self.points) and edge.p1 in [self.points[v] for v in t.vertices]:
-        #        return t
-        #return None
-        # forma rapida que solo recorre los triangulos vecinos usando jump and walk
-        
         current_triangle = self.triangles[0]
         visited = set()  # para marcar los triangulos que ya se visitaron
         while True:
@@ -304,6 +297,8 @@ class Triangulation:
     def insert_edge(self, edge:Edge):
         # Encontrar camino de triangulos intersectados por la arista
         intersected_triangles = self.find_triangles_intersecting_edge(edge)
+        # conjunto de cuadrilateros ya flipados
+        flipped_quads = set()
         # Itero mientras la arista no sea aun construida
         while len(intersected_triangles)>0:
             # Itero sobre pares de triangulos consecutivos en el camino
@@ -311,10 +306,20 @@ class Triangulation:
                 t1 = intersected_triangles[i]
                 t2 = intersected_triangles[i+1]
                 if self.can_flip(t1,t2):
-                    self.flip(t1,t2)
-                    # actualizar el path de triangulos intersectados
-                    intersected_triangles = self.find_triangles_intersecting_edge(edge)
-                    break
+                    # Obtener los vértices del cuadrilátero
+                    i_1 = t1.vecinos.index(t2)
+                    i_2 = t2.vecinos.index(t1)
+                    vi = t1.vertices[i_1]
+                    vj, vk = t1.get_arista_opuesta(i_1)
+                    vl = t2.vertices[i_2]
+                    quadrilateral = tuple(sorted([vi, vj, vk, vl]))
+                    # Verificar si el cuadrilátero ya fue flipado
+                    if quadrilateral not in flipped_quads:
+                        self.flip(t1, t2)
+                        flipped_quads.add(quadrilateral)
+                        # actualizar el path de triangulos intersectados
+                        intersected_triangles = self.find_triangles_intersecting_edge(edge)
+                        break
 
 
     # Metodo que verifica si se puede realizar un flip en una arista
@@ -436,12 +441,19 @@ class Triangulation:
 
 
         # remover el triangulo contenedor
-        self.triangles = [t for t in self.triangles if not any(v in [0,1,2] for v in t.vertices)]
-        # corregir indices al remover los 3 primeros puntos
+        triangles_to_remove = [t for t in self.triangles if any(v in [0, 1, 2] for v in t.vertices)]
+        self.triangles = [t for t in self.triangles if t not in triangles_to_remove]
+        
+        # eliminar de los vecinos los triangulo con indice 0,1,2 y corregir indices al remover los 3 primeros puntos
         for t in self.triangles:
             for i in range(3):
-                t.vertices[i] -= 3
+                if t.vecinos[i] is not None and t.vecinos[i] in triangles_to_remove:
+                    t.vecinos[i] = None
+            
+        for t in self.triangles:
+            t.vertices = [v - 3 for v in t.vertices]
         self.points = self.points[3:]
+        self.cnt -= 3
 
 
     # Metodo que entrega el lado mas largo de un triangulo
@@ -467,11 +479,12 @@ class Triangulation:
     # Metodo que encuentra LEPP en la triangulacion
     # Recibe un triangulo y retorna el LEPP de este como una lista
     def find_lepp(self, t:Triangle):
+        print(f"Triangulo: {self.points[t.vertices[0]]} {self.points[t.vertices[1]]} {self.points[t.vertices[2]]}")
         lepp = [t]
         current_triangle = t
         while True:
-            print("a")
             longest_edge = self.longest_edge(current_triangle)
+            print(longest_edge)
             vecino = current_triangle.vecinos[longest_edge]
             print(vecino)
             # Primera condicione de termino, si se llega al borde de la triangulacion

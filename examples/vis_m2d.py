@@ -18,6 +18,36 @@ from Triangulation import Triangulation
 from algorithms.load import read_triangulation
 
 
+# indice del triangulo actual para mostrar su LEPP
+current_triangle_index = 0
+
+def update_lepp_visualization():
+    global gpu_green_edges
+    # Obtener el triángulo actual y calcular su LEPP
+    current_triangle = T.triangles[current_triangle_index]
+    lepp_triangles = T.find_lepp(current_triangle)
+
+    # Preparar la lista de aristas en verde para el camino LEPP
+    green_edges = []
+    for triangle in lepp_triangles:
+        for i in range(3):
+            i1, i2 = triangle.get_arista_opuesta(i)
+            v1 = T.points[i1]
+            v2 = T.points[i2]
+            green_edges.extend([v1.x, v1.y, 0, v2.x, v2.y, 0])
+
+    # Cargar las aristas del LEPP en GPU con color verde
+    green_edge_colors = np.array([0.0, 1.0, 0.0] * (len(green_edges) // 3), dtype=np.float32)  # Verde
+
+    if gpu_green_edges:
+        gpu_green_edges.delete()  # Eliminar la lista anterior
+
+    gpu_green_edges = pipeline.vertex_list(
+        len(green_edges) // 3, GL.GL_LINES,
+    )
+    gpu_green_edges.position[:] = green_edges
+    gpu_green_edges.color[:] = green_edge_colors
+
 def translate(tx, ty, tz):
     return np.array(
         [[1, 0, 0, tx], [0, 1, 0, ty], [0, 0, 1, tz], [0, 0, 0, 1]], dtype=np.float32
@@ -76,6 +106,12 @@ try:
             except:
                 print(f"Error: El argumento {sys.argv[i]} no es una arista válida.")
                 sys.exit(1)
+    # arista restringida aleatoria
+    elif mode == "err":
+        a = int(argv[2])
+        b = int(argv[3])    
+        n = int(argv[4])
+        edges = []
     else:
         print("Modo no valido")
         exit()
@@ -151,7 +187,20 @@ if __name__ == "__main__":
             p1 = point(e[0][0],e[0][1])
             p2 = point(e[1][0],e[1][1])
             aristas.append(Edge(p1,p2))
-
+    # arista restringida aleatoria, toma 2 puntos aleatorios y los usa como arista restringida
+    elif mode == "err":
+        for _ in range(n):
+            x = random.uniform(-a,a)
+            y = random.uniform(-b,b)
+            puntos.append(point(x,y))
+        minx = -a
+        miny = -b
+        maxx = a
+        maxy = b
+        aristas = []
+        p1 = random.choice(puntos)
+        p2 = random.choice(puntos)
+        aristas.append(Edge(p1,p2))
     else:
         print("Modo no valido")
         exit()
@@ -218,6 +267,7 @@ if __name__ == "__main__":
 
     @win.event
     def on_key_press(key, mod):
+        global current_triangle_index
         if key == pyglet.window.key.UP:
             if mod & pyglet.window.key.MOD_CTRL:
                 controller.zoom *= 1.2
@@ -232,6 +282,16 @@ if __name__ == "__main__":
             controller.vx = -0.005
         elif key == pyglet.window.key.RIGHT:
             controller.vx = 0.005
+        elif key == pyglet.window.key.K:
+            # Mover al triangulo anterior en la lista y actualizar LEPP
+            if current_triangle_index > 0:
+                current_triangle_index -= 1
+                update_lepp_visualization()
+        elif key == pyglet.window.key.L:
+            # Mover al siguiente triangulo en la lista y actualizar LEPP
+            if current_triangle_index < len(T.triangles) - 1:
+                current_triangle_index += 1
+                update_lepp_visualization()
 
     @win.event
     def on_key_release(key, mod):
@@ -272,54 +332,14 @@ if __name__ == "__main__":
 
         # Dibujar las aristas restringidas
         gpu_edges.draw(GL.GL_LINES)
+        if gpu_green_edges:
+            gpu_green_edges.draw(GL.GL_LINES)
 
-    @win.event
-    def on_mouse_scroll(x, y, button, modifiers):
-        if button == mouse.LEFT:
-            # Convertir las coordenadas de la pantalla a las coordenadas de la escena
-            scene_x = (x/width-0.5)*range_x/controller.zoom-controller.x
-            scene_y = (y/width-0.5)*range_y/controller.zoom-controller.y
-            # Encontrar el triangulo clickeado
-            clicked_triangle = T.find_containing_triangle(point(scene_x, scene_y))
-            if clicked_triangle:
-                # Obtener el camino LEPP del triangulo clickeado
-                lepp_triangles = T.find_lepp(clicked_triangle)
-                # Preparar la lista de aristas veredes
-                green_edges = []
-                for triangle in lepp_triangles:
-                    for i in range(3):
-                        i1, i2 = triangle.get_arista_opuesta(i)
-                        v1 = T.points[i1]
-                        v2 = T.points[i2]
-                        green_edges.extend([v1.x,v1.y,0,v2.x,v2.y,0])
-                # Cargar las aristas del LEPP en GPU con color verde
-                green_edge_colors = np.array([0.0,1.0,0.0]*(len(green_edges)//3), dtype=np.float32) # Verde
+    green_edges = []
+    gpu_green_edges = None
 
-                gpu_green_edges = pipeline.vertex_list(
-                    len(green_edges) // 3, GL.GL_LINES,
-                )
-                gpu_green_edges.position[:] = green_edges
-                gpu_green_edges.colors[:]  = green_edge_colors
-                # Redibujar para mostrar las aristas en verde
-                @win.event
-                def on_draw():
-                    GL.glClearColor(0.0, 0.0, 0.0, 1.0)
-                    GL.glEnable(GL.GL_BLEND)
-                    GL.glBlendFunc(GL.GL_SRC_ALPHA, GL.GL_ONE_MINUS_SRC_ALPHA)
-                    GL.glPolygonMode(GL.GL_FRONT_AND_BACK, GL.GL_LINE)
-                    GL.glPointSize(5)
 
-                    win.clear()
-                    pipeline.use()
 
-                    pipeline["translate"] = translate(controller.x, controller.y, 0.0).reshape(16, 1, order="F")
-                    pipeline["scale"] = uniformScale(controller.zoom).reshape(16, 1, order="F")
-
-                    gpu_data.draw(GL.GL_TRIANGLES)
-
-                    # Dibujar las aristas en rojo y verde
-                    gpu_edges.draw(GL.GL_LINES)
-                    gpu_green_edges.draw(GL.GL_LINES)
 
 
 

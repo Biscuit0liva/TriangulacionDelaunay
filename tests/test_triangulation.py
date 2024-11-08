@@ -1,3 +1,4 @@
+import random
 import unittest
 import sys
 import os
@@ -527,6 +528,22 @@ class TestTriangle(unittest.TestCase):
         # Lepp se ira a ta, que seria la arista opuesta al segundo vertice de t6, no a tb pues es la arista opuesta al tercer vertice
         self.assertEqual(self.T.find_lepp(self.t6), [self.t6, ta])
 
+
+    def test_restricted(self):
+        # test con puntos aleatorios y arista restringida
+        puntos = []
+        for _ in range(1000):
+            x = random.uniform(-10,10)
+            y = random.uniform(-10,10)
+            puntos.append(point(x,y))
+        minx = -10
+        maxx = 10
+        miny = -10
+        maxy = 10
+        aristas = [Edge(point(0,0),point(0,5))]
+        T = Triangulation(minx, maxx, miny, maxy, 1e-10)
+        T.triangulate(puntos,aristas)
+        print("listoo")
 
 
 if __name__ == '__main__':
