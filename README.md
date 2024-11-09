@@ -35,3 +35,20 @@ python examples/vis_m2d.py r a b n
 ```shell
 python examples/vis_m2d.py c r n
 ```
+## Aristas restringidas
+Ejecucion con aristas restringidas. En la visualizacion las aristas que se respeten estaran de color rojo. No soporta el caso de aristas que se cruzen
+
+- Rectangulo: genera n puntos aleatorios en un rectangulo (-a,a) (-b,b) y acepta aristas restringidas a respetar
+
+```shell
+python examples/vis_m2d.py er a b n "((p1x,p1y),(p2x,p2y))" ...
+```
+
+- Arista aleatoria: Semejante al caso anterior pero genera 1 arista aleatoria que se respetara
+
+```shell
+python examples/vis_m2d.py err a b n
+```
+
+## LEPP
+Para todas las ejecuciones, se tiene la funcionalidad de ir viendo el LEPP de cada triangulo en la lista de la triangulacion. Avanza en la lista con la tecla L y retrocede con K. El camino LEPP de triangulos se coloreara verde 

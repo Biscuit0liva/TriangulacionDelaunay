@@ -241,9 +241,6 @@ if __name__ == "__main__":
     gpu_data.position[:] = vertices
     gpu_data.color[:] = np.full(len(vertices), 0.5)
 
-    # ARISTASS
-    print(f"restricted_edge_list:{restricted_edge_list}")
-    print(f"restricted_edge_list:{restricted_edge_colors}")
     # Crear el buffer para las aristas restringidas
     edge_vertices = []
     for edge in restricted_edge_list:

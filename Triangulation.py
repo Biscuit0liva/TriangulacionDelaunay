@@ -210,7 +210,6 @@ class Triangulation:
         visited = set()  # para marcar los triangulos que ya se visitaron
         while True:
             if current_triangle in visited:
-                print("Ciclo infinito omaigaaaaaa") 
                 return None
             visited.add(current_triangle)
             # verificar si el triangulo actual contiene al punto inicial de la arista
@@ -479,14 +478,11 @@ class Triangulation:
     # Metodo que encuentra LEPP en la triangulacion
     # Recibe un triangulo y retorna el LEPP de este como una lista
     def find_lepp(self, t:Triangle):
-        print(f"Triangulo: {self.points[t.vertices[0]]} {self.points[t.vertices[1]]} {self.points[t.vertices[2]]}")
         lepp = [t]
         current_triangle = t
         while True:
             longest_edge = self.longest_edge(current_triangle)
-            print(longest_edge)
             vecino = current_triangle.vecinos[longest_edge]
-            print(vecino)
             # Primera condicione de termino, si se llega al borde de la triangulacion
             # Segunda condicion de termino, si es una arista terminal (la arista mas larga es la que comparte con el triangulo anterior en LEPP)
             if vecino is None or (len(lepp)>1 and vecino == lepp[-2]):
